@@ -137,8 +137,20 @@ pre.code-block{background:#0a0e14;border:1px solid var(--border);border-radius:1
     <button class="nav-item" data-page="java">☕ Java 环境</button>
     <button class="nav-item" data-page="theme">🎨 界面颜色</button>
     <button class="nav-item" data-page="contribute">💜 贡献服务器</button>
+    <div id="update-banner" style="display:none;margin-top:14px;padding:12px;border-radius:10px;background:color-mix(in srgb,var(--green) 12%,transparent);border:1px solid var(--green)">
+      <div style="font-size:12.5px;font-weight:700;color:var(--green)">🔔 发现新版本 <span id="ub-ver"></span></div>
+      <div class="row mt" style="gap:6px">
+        <button class="btn sm green" id="ub-dl">下载更新</button>
+        <button class="btn sm" id="ub-skip">忽略</button>
+      </div>
+      <div id="ub-progress" style="display:none;margin-top:8px">
+        <div id="ub-text" style="font-size:11px;color:var(--muted)"></div>
+        <div class="progress" style="height:6px"><div id="ub-bar"></div></div>
+      </div>
+    </div>
     <div style="margin-top:18px;padding:10px 12px;border-top:1px solid var(--border);color:var(--muted);font-size:11px;line-height:1.7">
-      联机服务 <span id="sb-coord-state">●</span> <span id="sb-coord-text">检测中</span>
+      联机服务 <span id="sb-coord-state">●</span> <span id="sb-coord-text">检测中</span><br>
+      版本 v<span id="sb-ver">-</span> <a href="#" id="sb-check" style="font-size:10.5px">检查更新</a>
     </div>
   </aside>
 
@@ -1423,6 +1435,70 @@ $('contrib-claim').onclick = async () => {
   }
 };
 
+// ================= 自动更新 =================
+let updateTask = null, updateSkipped = false;
+async function checkUpdate(manual) {
+  try {
+    const r = await api('/update/check');
+    $('sb-ver').textContent = r.current || '?';
+    if (!r.ok) { if (manual) toast('检查更新失败: ' + (r.error||''), 'err'); return; }
+    if (r.hasUpdate) {
+      if (!updateSkipped || manual) {
+        $('update-banner').style.display = 'block';
+        $('ub-ver').textContent = r.latest;
+      }
+      if (manual) toast(`发现新版本 ${r.latest}（当前 ${r.current}）`, 'ok');
+    } else if (manual) {
+      toast(`已是最新版本 v${r.current}`, 'ok');
+    }
+  } catch (_) {}
+}
+$('sb-check').onclick = e => { e.preventDefault(); checkUpdate(true); };
+$('ub-skip').onclick = () => { updateSkipped = true; $('update-banner').style.display = 'none'; };
+$('ub-dl').onclick = async () => {
+  $('ub-dl').disabled = true;
+  $('ub-progress').style.display = 'block';
+  $('ub-text').textContent = '下载更新包中...';
+  const r = await post('/update/download');
+  if (!r.ok) { $('ub-text').textContent = '❌ ' + (r.error||'启动失败'); $('ub-dl').disabled = false; return; }
+  updateTask = r.taskId;
+  pollUpdate();
+};
+async function pollUpdate() {
+  if (!updateTask) return;
+  const r = await api('/download/progress?taskId=' + encodeURIComponent(updateTask));
+  const p = r.progress;
+  if (!p) return;
+  if (p.status === 'downloading') {
+    const pct = p.total ? (p.done / p.total * 100) : 0;
+    $('ub-bar').style.width = pct + '%';
+    $('ub-text').textContent = (p.phase === 'extract' ? '解压中 ' : '下载中 ') + pct.toFixed(0) + '%';
+    setTimeout(pollUpdate, 500);
+  } else if (p.status === 'done') {
+    $('ub-bar').style.width = '100%';
+    $('ub-text').innerHTML = `✅ v${p.version} 就绪 <button class="btn sm green" onclick="applyUpdate()">重启应用</button>`;
+  } else {
+    $('ub-text').textContent = '❌ ' + p.error;
+    $('ub-dl').disabled = false;
+    updateTask = null;
+  }
+}
+async function applyUpdate() {
+  if (!confirm('重启应用到新版本？EasySUS 将短暂退出并自动重新打开（约 10 秒）。')) return;
+  toast('正在应用更新，页面即将断开，请稍候…', 'ok');
+  try { await post('/update/apply', {}); } catch (_) {}
+  // 轮询等待新进程起来
+  let tries = 0;
+  const wait = setInterval(async () => {
+    tries++;
+    try {
+      const s = await api('/status');
+      if (s.ok) { clearInterval(wait); location.reload(); }
+    } catch (_) {}
+    if (tries > 40) { clearInterval(wait); $('ub-text').textContent = '请手动重新打开控制台（start.bat）'; }
+  }, 1500);
+}
+
 // ================= 代码块复制 =================
 function setupCopyButtons() {
   document.querySelectorAll('pre[data-copy]').forEach(pre => {
@@ -1451,6 +1527,7 @@ function setupCopyButtons() {
   setupCopyButtons();
   pollStatus();
   setInterval(pollStatus, 2000);
+  setTimeout(() => checkUpdate(false), 1500);   // 启动后自动检查一次更新
 })();
 </script>
 </body>

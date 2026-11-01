@@ -46,6 +46,8 @@ function loadConfig() {
         'piston-meta.mojang.com', 'piston-data.mojang.com', 'launcher.mojang.com',
         'bmclapi2.bangbang93.com', 'bmclapi1.sakura.sld.tw',
         'cdn.modrinth.com', 'api.modrinth.com', 'github.com', 'objects.githubusercontent.com',
+        'codeload.github.com', 'raw.githubusercontent.com', 'api.github.com',
+        'mirror.ghproxy.com', 'gh-proxy.com',
       ],
       maxBytes: 400 * 1024 * 1024,   // 单文件上限 400MB
       perHour: Number(process.env.EASYSUS_COORD_RELAY_RATE) || 40,  // 每 IP 每小时请求数
@@ -578,6 +580,16 @@ const server = http.createServer(async (req, res) => {
       for (const s of Object.values(DB.sessions)) if (s.userId === userId) s.contributed = DB.users[userId].contributed;
       saveDB();
       return sendJSON(res, 200, { ok: true, user: DB.users[userId], ...quotaSnapshot() });
+    }
+
+    // ---- 版本公告（自动更新兜底：管理员放一个 version.json 在协调中心目录即可）----
+    if (req.method === 'GET' && p === '/api/version') {
+      try {
+        const v = JSON.parse(fs.readFileSync(path.join(ROOT, 'version.json'), 'utf8'));
+        return sendJSON(res, 200, { ok: true, ...v });
+      } catch (_) {
+        return sendJSON(res, 404, { ok: false, error: 'no version published' });
+      }
     }
 
     // ---- 受限下载中转（客户端直连失败时使用，主机白名单 + 限流）----

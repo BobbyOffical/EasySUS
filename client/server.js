@@ -19,6 +19,7 @@ const easytier = require('./easytier');
 const mods = require('./mods');
 const lanbroadcast = require('./lanbroadcast');
 const gateway = require('./gateway');
+const updater = require('./updater');
 
 loadConfig();
 
@@ -71,6 +72,7 @@ const server = http.createServer(async (req, res) => {
       try { coord = await quota.getCoordinatorStatus(); } catch (_) {}
       return sendJSON(res, 200, {
         ok: true,
+        version: updater.localVersion(),
         server: {
           running: st.running, starting: st.starting, type: st.serverType, version: st.version,
           pid: st.pid, port: st.port, uptimeMs: st.uptimeMs, players: st.players, motd: st.motd, tps: st.tps,
@@ -279,6 +281,35 @@ const server = http.createServer(async (req, res) => {
         .then(r => { PROGRESS[taskId].status = 'done'; PROGRESS[taskId].file = r.path; })
         .catch(e => { PROGRESS[taskId].status = 'error'; PROGRESS[taskId].error = e.message; });
       return sendJSON(res, 200, { ok: true, taskId });
+    }
+
+    // ===== 自动更新 =====
+    if (M === 'GET' && p === '/api/update/check') {
+      try { return sendJSON(res, 200, await updater.check()); }
+      catch (e) { return sendJSON(res, 200, { ok: false, current: updater.localVersion(), error: e.message }); }
+    }
+    if (M === 'POST' && p === '/api/update/download') {
+      const taskId = 'update-' + Date.now();
+      PROGRESS[taskId] = { type: 'update', done: 0, total: 0, status: 'downloading' };
+      updater.download((phase, done, total) => {
+        PROGRESS[taskId].phase = phase; PROGRESS[taskId].done = done; PROGRESS[taskId].total = total;
+      }).then(r => {
+        PROGRESS[taskId].status = r.ok ? 'done' : 'error';
+        PROGRESS[taskId].version = r.version; PROGRESS[taskId].error = r.error;
+      }).catch(e => { PROGRESS[taskId].status = 'error'; PROGRESS[taskId].error = e.message; });
+      return sendJSON(res, 200, { ok: true, taskId });
+    }
+    if (M === 'POST' && p === '/api/update/apply') {
+      const b = await readBody(req);
+      const r = updater.apply();
+      if (r.ok && b.quit !== false) {
+        sendJSON(res, 200, { ok: true, restarting: true });
+        console.log('[EasySUS] 更新应用器已启动，主进程退出…');
+        setTimeout(() => process.exit(0), 900);
+      } else {
+        sendJSON(res, r.ok ? 200 : 400, r);
+      }
+      return;
     }
 
     // ===== 主题（UI 颜色）=====
