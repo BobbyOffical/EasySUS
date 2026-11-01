@@ -85,6 +85,27 @@ macOS:     双击 start.command
 > 诚实说明：客户端最终必须能解密出地址，所以这属于**混淆防护**——挡住搜索、扒取与批量滥用，
 > 防不住愿意完整调试本程序的人。真正的访问控制在服务端（白名单、限流、鉴权、管理员令牌）。
 
+## 🔄 自动更新
+
+侧边栏显示当前版本，启动后自动检查一次；发现新版本出现绿色横幅：
+**下载更新**（带进度条）→ **重启应用**，全程无需手动下载替换。
+
+- 更新源：GitHub 仓库 zip，通道依次尝试 **直连 → 内置中转 → ghproxy 镜像**（国内友好）
+- 只覆盖代码文件；`client/data/`（服务端实例、Java、配置）、`admin-token.local`、`.git` 受保护绝不动
+- 旧文件自动备份到 `client/data/update-backup/`，需要回滚时把备份拷回去即可
+- 应用由分离进程完成：等主进程退出 → 换文件 → 自动重启；日志在 `client/data/update-apply.log`
+- GitHub 不可达时回退到协调中心的 `/api/version` 公告
+
+### 发布新版本（管理员）
+
+```bash
+echo "1.2.0" > VERSION          # 1. 改代码后升版本号
+git add -A && git commit -m "v1.2.0" && git push
+# 2.（可选）同步公告，作为 GitHub 不可达时的兜底
+echo '{"version":"1.2.0","notes":"更新说明"}' > /opt/easysus-coordinator/version.json
+systemctl restart easysus-coordinator
+```
+
 ## ⚠️ 服务端下载：各类型端点与修复记录
 
 长期以来只有原版能下载，其余类型全部失败。逐项排查后是**四个各自独立的真实原因**：
