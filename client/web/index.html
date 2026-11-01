@@ -184,6 +184,7 @@ pre.code-block{background:#0a0e14;border:1px solid var(--border);border-radius:1
             <span style="color:var(--muted);font-size:12px">MB</span>
             <button class="btn green" id="d-start">▶ 启动</button>
             <button class="btn red" id="d-stop" disabled>■ 停止</button>
+            <button class="btn" id="d-takeover" style="display:none;background:var(--yellow);border-color:var(--yellow);color:#fff">🧹 清理并接管</button>
           </div>
         </div>
       </div>
@@ -888,20 +889,36 @@ function renderDashboard(s) {
   }
 }
 
+let pendingStart = null;   // 记录因孤儿/端口占用失败的启动，供「清理并接管」重试
 $('d-start').onclick = async () => {
   const id = $('d-instance-select').value;
   if (!id) return toast('请先在「下载服务端」页下载一个服务端', 'warn');
   $('d-start').disabled = true;
   const r = await post('/server/start', { instanceId: id, memoryMb: Number($('d-memory').value) });
-  if (r.ok) toast('服务端启动中...', 'ok');
+  if (r.ok) { toast('服务端启动中...', 'ok'); $('d-takeover').style.display = 'none'; pendingStart = null; }
   else {
     $('d-start').disabled = false;
     if (r.error === 'TAOWA_QUOTA' || r.error === 'EASYTIER_QUOTA') {
       toast((r.detail && r.detail.message) || '额度已满', 'err');
       if (r.detail && r.detail.contributeHint) setTimeout(() => goto('contribute'), 1500);
     } else if (r.error === 'NO_JAVA') { toast(r.message || '未检测到 Java', 'err'); setTimeout(() => goto('java'), 1500); }
+    else if (r.error === 'ORPHAN_MC' || r.error === 'PORT_BUSY') {
+      toast(r.message || '检测到遗留服务器进程占用端口', 'err');
+      pendingStart = { instanceId: id, memoryMb: Number($('d-memory').value) };
+      $('d-takeover').style.display = 'inline-block';
+    }
     else toast((r.error||'') + ': ' + (r.message || ''), 'err');
   }
+};
+$('d-takeover').onclick = async () => {
+  if (!pendingStart) return;
+  $('d-takeover').disabled = true;
+  $('d-takeover').textContent = '清理中...';
+  const r = await post('/server/start', Object.assign({ forceKillOrphan: true }, pendingStart));
+  $('d-takeover').disabled = false;
+  $('d-takeover').textContent = '🧹 清理并接管';
+  if (r.ok) { toast('已清理遗留进程并重新启动 ✅', 'ok'); $('d-takeover').style.display = 'none'; pendingStart = null; }
+  else toast(r.message || r.error || '清理后仍启动失败', 'err');
 };
 $('d-stop').onclick = async () => { $('d-stop').disabled = true; await post('/server/stop'); toast('已发送 stop，正在安全关闭...', 'ok'); };
 
