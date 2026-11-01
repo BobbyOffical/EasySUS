@@ -95,17 +95,14 @@ function applyFiles() {
 // ---- 4. 重启 ----
 function restart() {
   const entry = path.join(ROOT, 'client', 'server.js');
-  const args = [entry];
-  const opts = { cwd: ROOT, detached: true, stdio: 'ignore', windowsHide: true };
-  let child;
-  if (process.platform === 'win32') {
-    // 新控制台窗口，用户看得见日志
-    child = spawn('cmd.exe', ['/c', 'start', 'EasySUS', process.execPath, ...args], { shell: false, detached: true, stdio: 'ignore', windowsHide: false });
-  } else {
-    child = spawn(process.execPath, args, opts);
-  }
+  // 直接 detached 启动 node（跨平台一致）。
+  // 不要用 `cmd /c start 标题 程序`：start 只有在标题带引号时才当标题，
+  // 否则会把 "EasySUS" 当成程序名，静默失败。
+  const child = spawn(process.execPath, [entry], {
+    cwd: ROOT, detached: true, stdio: 'ignore', windowsHide: false,
+  });
   child.unref();
-  log('restart issued');
+  log('restart issued pid=' + child.pid);
 }
 
 // ---- main ----
