@@ -133,9 +133,9 @@ async function download(onProgress) {
     return { ok: false, error: '解压失败：' + e.message };
   }
   fs.unlinkSync(zipPath);
-  // GitHub zip 顶层是 <repo>-<branch>/，剥掉一层
-  const subs = fs.readdirSync(STAGING).filter(s => s !== 'update.zip');
-  if (subs.length === 1 && subs[0].toLowerCase().startsWith(REPO.split('/')[0].toLowerCase())) {
+  // GitHub zip 顶层是 <repo>-<branch>/，只要顶层恰好一个目录就剥掉一层
+  const subs = fs.readdirSync(STAGING);
+  if (subs.length === 1 && fs.statSync(path.join(STAGING, subs[0])).isDirectory()) {
     const inner = path.join(STAGING, subs[0]);
     const tmp = STAGING + '-flat';
     fs.rmSync(tmp, { recursive: true, force: true });
