@@ -1,0 +1,17 @@
+# 运行时数据
+client/data/
+coordinator/data.json
+
+# 日志
+*.log
+
+# 管理员令牌（敏感）
+admin-token.local
+admin-token
+
+# 系统
+.DS_Store
+Thumbs.db
+
+# 依赖（当前零依赖，预留）
+node_modules/

@@ -1,0 +1,1457 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EasySUS · Minecraft 服务器控制台</title>
+<style>
+:root{
+  --bg:#0d1117; --panel:#161b27; --panel2:#1c2333; --border:#2a3348;
+  --text:#e6e9f0; --muted:#8b94a7; --green:#3fb950; --red:#f85149; --yellow:#d29922;
+  --blue:#58a6ff; --purple:#bc8cff; --grass:#5d9c40; --accent:#58a6ff;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,"Microsoft YaHei","PingFang SC",sans-serif;font-size:14px}
+a{color:var(--accent)}
+button{cursor:pointer;font-family:inherit}
+
+.layout{display:flex;min-height:100vh}
+.sidebar{width:215px;background:var(--panel);border-right:1px solid var(--border);padding:20px 12px;flex-shrink:0;position:sticky;top:0;height:100vh;overflow-y:auto}
+.logo{display:flex;align-items:center;gap:10px;padding:0 10px 18px;border-bottom:1px solid var(--border);margin-bottom:14px}
+.logo .cube{width:34px;height:34px;background:linear-gradient(135deg,var(--grass),#3f7a28);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:20px}
+.logo b{font-size:17px;letter-spacing:.5px}
+.logo small{display:block;color:var(--muted);font-size:11px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;color:var(--muted);cursor:pointer;margin-bottom:4px;user-select:none;border:none;background:none;width:100%;text-align:left;font-size:14px}
+.nav-item:hover{background:var(--panel2);color:var(--text)}
+.nav-item.active{background:color-mix(in srgb, var(--accent) 15%, transparent);color:var(--accent);font-weight:600}
+.main{flex:1;padding:22px 26px;max-width:1200px}
+
+.contribute-banner{background:linear-gradient(90deg,var(--purple),var(--accent));border-radius:12px;padding:14px 20px;margin-bottom:20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;box-shadow:0 4px 18px #7c3aed44}
+.contribute-banner .icon{font-size:26px}
+.contribute-banner .txt{flex:1;min-width:220px}
+.contribute-banner b{font-size:15px}
+.contribute-banner p{font-size:12.5px;opacity:.92;margin-top:2px}
+.contribute-banner button{background:#fff;color:#5b21b6;border:none;border-radius:8px;padding:8px 16px;font-weight:700;font-size:13px}
+.contribute-banner button:hover{transform:translateY(-1px)}
+
+.grid{display:grid;gap:16px}
+.g2{grid-template-columns:1fr 1fr}
+.g3{grid-template-columns:repeat(3,1fr)}
+.g4{grid-template-columns:repeat(4,1fr)}
+@media(max-width:960px){.g2,.g3,.g4{grid-template-columns:1fr 1fr}}
+@media(max-width:640px){.g2,.g3,.g4{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:18px}
+.card h3{font-size:14px;color:var(--muted);font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.stat .value{font-size:26px;font-weight:700;margin-top:2px}
+.stat .sub{color:var(--muted);font-size:12px;margin-top:4px}
+
+.dot{width:12px;height:12px;border-radius:50%;display:inline-block}
+.dot.on{background:var(--green);box-shadow:0 0 10px var(--green);animation:pulse 1.6s infinite}
+.dot.off{background:var(--red)}
+.dot.starting{background:var(--yellow);animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+
+.badge{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:600}
+.badge.green{background:color-mix(in srgb,var(--green) 15%,transparent);color:var(--green)}
+.badge.red{background:color-mix(in srgb,var(--red) 15%,transparent);color:var(--red)}
+.badge.yellow{background:color-mix(in srgb,var(--yellow) 15%,transparent);color:var(--yellow)}
+.badge.blue{background:color-mix(in srgb,var(--accent) 15%,transparent);color:var(--accent)}
+.badge.purple{background:color-mix(in srgb,var(--purple) 15%,transparent);color:var(--purple)}
+
+.btn{border:1px solid var(--border);background:var(--panel2);color:var(--text);border-radius:8px;padding:9px 18px;font-size:13.5px;font-weight:600;transition:all .15s}
+.btn:hover{border-color:var(--accent)}
+.btn.green{background:var(--green);border-color:var(--green);color:#fff}
+.btn.red{background:var(--red);border-color:var(--red);color:#fff}
+.btn.blue{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.sm{padding:5px 12px;font-size:12.5px}
+
+input,select,textarea{background:var(--panel2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:9px 12px;font-size:13.5px;font-family:inherit;width:100%}
+input:focus,select:focus{outline:none;border-color:var(--accent)}
+input[type=color]{padding:2px;height:38px;width:52px;cursor:pointer}
+label{display:block;color:var(--muted);font-size:12.5px;margin-bottom:6px;font-weight:600}
+.field{margin-bottom:14px}
+.hint{color:var(--muted);font-size:12px;margin-top:5px;line-height:1.5}
+
+.console{background:#0a0e14;border:1px solid var(--border);border-radius:10px;padding:12px;height:380px;overflow-y:auto;font-family:"Cascadia Code",Consolas,"Courier New",monospace;font-size:12.5px;line-height:1.65;color:#c9d1d9}
+.console .line{white-space:pre-wrap;word-break:break-all}
+.console .line.err{color:#ff7b72}
+.console .line.cmd{color:#79c0ff}
+.console-input{display:flex;gap:10px;margin-top:10px}
+.console-input input{flex:1;font-family:Consolas,monospace}
+
+.progress{background:var(--panel2);border-radius:999px;height:10px;overflow:hidden;margin-top:8px}
+.progress>div{height:100%;background:linear-gradient(90deg,var(--accent),var(--purple));border-radius:999px;transition:width .3s;width:0}
+
+.quota-slots{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.slot{width:34px;height:34px;border-radius:8px;border:1px solid var(--border);background:var(--panel2);display:flex;align-items:center;justify-content:center;font-size:15px}
+.slot.used{background:color-mix(in srgb,var(--green) 20%,transparent);border-color:var(--green)}
+.slot.free{color:var(--muted)}
+
+.pick-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(165px,1fr));gap:10px}
+.pick{background:var(--panel2);border:2px solid var(--border);border-radius:10px;padding:12px 14px;cursor:pointer;transition:all .15s}
+.pick:hover{border-color:color-mix(in srgb,var(--accent) 50%,transparent)}
+.pick.selected{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 10%,transparent)}
+.pick b{display:block;font-size:13.5px}
+.pick small{color:var(--muted);font-size:11.5px;line-height:1.45;display:block;margin-top:4px}
+.pick .tagline{font-size:10.5px;color:var(--yellow);margin-top:5px}
+
+.section{display:none}
+.section.active{display:block}
+.page-title{font-size:20px;font-weight:700;margin-bottom:4px}
+.page-sub{color:var(--muted);font-size:13px;margin-bottom:20px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.mt{margin-top:16px}
+.toast-wrap{position:fixed;top:18px;right:18px;z-index:99;display:flex;flex-direction:column;gap:8px}
+.toast{background:var(--panel2);border:1px solid var(--border);border-left:4px solid var(--accent);border-radius:8px;padding:11px 16px;font-size:13px;max-width:380px;box-shadow:0 6px 20px #0008;animation:slidein .2s}
+.toast.ok{border-left-color:var(--green)}
+.toast.err{border-left-color:var(--red)}
+.toast.warn{border-left-color:var(--yellow)}
+@keyframes slidein{from{transform:translateX(30px);opacity:0}to{transform:none;opacity:1}}
+.kv{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px}
+.kv:last-child{border:none}
+.kv .k{color:var(--muted);flex-shrink:0}
+.kv .v{text-align:right;word-break:break-all}
+code{background:var(--panel2);border:1px solid var(--border);padding:1px 6px;border-radius:5px;font-size:12px;font-family:Consolas,monospace;color:var(--accent)}
+pre.code-block{background:#0a0e14;border:1px solid var(--border);border-radius:10px;padding:12px;font-size:12px;overflow-x:auto;font-family:Consolas,monospace;color:#c9d1d9;line-height:1.6}
+.theme-swatch{width:100%;height:42px;border-radius:8px;border:2px solid var(--border);cursor:pointer;position:relative}
+.theme-swatch.selected{border-color:var(--accent)}
+.mode-card{cursor:pointer;transition:all .15s}
+.mode-card.selected{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.room-code{font-size:22px;font-weight:700;color:var(--green);letter-spacing:2px;font-family:Consolas,monospace;background:var(--panel2);padding:10px 16px;border-radius:10px;display:inline-block;border:1px dashed var(--green)}
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="logo">
+      <div class="cube">🟩</div>
+      <div><b>EasySUS</b><small>Minecraft 开服助手</small></div>
+    </div>
+    <button class="nav-item active" data-page="dashboard">📊 状态总览</button>
+    <button class="nav-item" data-page="download">⬇️ 下载服务端</button>
+    <button class="nav-item" data-page="mods">🧩 模组下载</button>
+    <button class="nav-item" data-page="console">🖥️ 控制台</button>
+    <button class="nav-item" data-page="network">🌐 联机设置</button>
+    <button class="nav-item" data-page="remote">🕸️ 远程访问</button>
+    <button class="nav-item" data-page="java">☕ Java 环境</button>
+    <button class="nav-item" data-page="theme">🎨 界面颜色</button>
+    <button class="nav-item" data-page="contribute">💜 贡献服务器</button>
+    <div style="margin-top:18px;padding:10px 12px;border-top:1px solid var(--border);color:var(--muted);font-size:11px;line-height:1.7">
+      联机服务 <span id="sb-coord-state">●</span> <span id="sb-coord-text">检测中</span>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="contribute-banner">
+      <div class="icon">💜</div>
+      <div class="txt">
+        <b>把闲置服务器贡献给 EasySUS，成为「贡献者」！</b>
+        <p>贡献者永久免除陶瓦 6 人 / 远程访问 8 台上限，帮助更多腐竹免费开服。提交 issue 即可申请捐赠令牌 🤝</p>
+      </div>
+      <button onclick="goto('contribute')">我要贡献 →</button>
+    </div>
+
+    <!-- ============ 状态总览 ============ -->
+    <section class="section active" id="page-dashboard">
+      <div class="page-title">状态总览</div>
+      <div class="page-sub">服务器运行情况一目了然</div>
+
+      <div class="card" style="margin-bottom:16px">
+        <div class="row" style="justify-content:space-between">
+          <div class="row">
+            <span class="dot off" id="d-dot"></span>
+            <div>
+              <div style="font-size:18px;font-weight:700" id="d-state">未运行</div>
+              <div style="color:var(--muted);font-size:12.5px" id="d-instance">尚未选择服务端实例</div>
+            </div>
+          </div>
+          <div class="row">
+            <select id="d-instance-select" style="width:220px"></select>
+            <input id="d-memory" type="number" value="2048" min="512" step="256" style="width:110px" title="分配内存 MB">
+            <span style="color:var(--muted);font-size:12px">MB</span>
+            <button class="btn green" id="d-start">▶ 启动</button>
+            <button class="btn red" id="d-stop" disabled>■ 停止</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid g4" style="margin-bottom:16px">
+        <div class="card stat"><h3>👥 在线玩家</h3><div class="value" id="d-players">0 / 0</div><div class="sub" id="d-player-list">—</div></div>
+        <div class="card stat"><h3>⏱️ 运行时长</h3><div class="value" id="d-uptime">--</div><div class="sub">自上次启动</div></div>
+        <div class="card stat"><h3>📶 TPS</h3><div class="value" id="d-tps">--</div><div class="sub">服务器性能</div></div>
+        <div class="card stat"><h3>🌐 联机方式</h3><div class="value" style="font-size:17px" id="d-netmode">自有公网IP</div><div class="sub" id="d-netinfo">端口 25565</div></div>
+      </div>
+
+      <div class="grid g2">
+        <div class="card">
+          <h3>🎫 联机额度（联机服务实时）</h3>
+          <div class="grid g2" style="gap:12px">
+            <div>
+              <div style="font-size:12px;color:var(--muted)">🏺 陶瓦联机</div>
+              <div style="font-size:24px;font-weight:700" id="d-q-taowa">- / 6</div>
+              <div class="quota-slots" id="d-q-taowa-slots"></div>
+            </div>
+            <div>
+              <div style="font-size:12px;color:var(--muted)">🕸️ 远程访问(EasyTier)</div>
+              <div style="font-size:24px;font-weight:700" id="d-q-et">- / 8</div>
+              <div class="quota-slots" id="d-q-et-slots"></div>
+            </div>
+          </div>
+          <div class="hint mt" id="d-quota-hint">—</div>
+        </div>
+        <div class="card">
+          <h3>📋 快捷信息</h3>
+          <div class="kv"><span class="k">服务端</span><span class="v" id="d-type">—</span></div>
+          <div class="kv"><span class="k">版本</span><span class="v" id="d-version">—</span></div>
+          <div class="kv"><span class="k">Java</span><span class="v" id="d-java" style="max-width:260px;overflow:hidden;text-overflow:ellipsis">—</span></div>
+          <div class="kv"><span class="k">PID</span><span class="v" id="d-pid">—</span></div>
+          <div class="kv"><span class="k">陶瓦房间码</span><span class="v" id="d-room">—</span></div>
+          <div class="kv"><span class="k">玩家连接地址</span><span class="v" id="d-address" style="color:var(--green);font-weight:700">—</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 下载服务端 ============ -->
+    <section class="section" id="page-download">
+      <div class="page-title">下载服务端</div>
+      <div class="page-sub">选择服务端类型、下载源和版本，一键下载</div>
+
+      <div class="card" style="margin-bottom:16px">
+        <h3>📡 下载源 <span class="badge blue" id="dl-source-badge">官方源</span></h3>
+        <div class="pick-grid" id="dl-sources"></div>
+        <div class="hint">中国大陆用户推荐 <b>BMCLAPI</b> 镜像，速度更快。</div>
+      </div>
+
+      <div class="card" style="margin-bottom:16px">
+        <h3>📦 服务端类型</h3>
+        <div class="pick-grid" id="dl-types"></div>
+      </div>
+
+      <div class="card" style="margin-bottom:16px">
+        <h3>🔢 游戏版本</h3>
+        <div class="row">
+          <select id="dl-version" style="width:220px"><option>加载中...</option></select>
+          <button class="btn blue" id="dl-start">⬇️ 开始下载</button>
+          <button class="btn sm" id="dl-refresh">刷新版本列表</button>
+        </div>
+        <div class="hint">版本列表来自官方清单；部分老版本没有官方服务端 jar。</div>
+        <div id="dl-progress" style="display:none;margin-top:14px">
+          <div class="row"><span id="dl-progress-text" style="font-size:13px"></span></div>
+          <div class="progress"><div id="dl-progress-bar"></div></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>🗂️ 已下载的实例</h3>
+        <div id="dl-instances" class="hint">暂无实例</div>
+      </div>
+    </section>
+
+    <!-- ============ 模组下载 ============ -->
+    <section class="section" id="page-mods">
+      <div class="page-title">🧩 模组 / 插件下载</div>
+      <div class="page-sub">从 Modrinth 搜索并一键安装到你的服务端实例（需重启服务器生效）</div>
+
+      <div class="card" style="margin-bottom:16px">
+        <h3>🎯 安装目标实例</h3>
+        <div class="row">
+          <select id="mod-instance" style="width:260px"></select>
+          <span class="hint" id="mod-instance-hint" style="margin:0">选择一个已下载的服务端实例</span>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:16px">
+        <h3>🔍 搜索</h3>
+        <div class="row" style="margin-bottom:12px">
+          <input id="mod-query" placeholder="搜索模组名，如 Sodium / JEI / 优化" style="flex:1;min-width:220px">
+          <button class="btn blue" id="mod-search">搜索</button>
+        </div>
+        <div class="row">
+          <div style="flex:1;min-width:150px">
+            <label>项目类型</label>
+            <select id="mod-type"></select>
+          </div>
+          <div style="flex:1;min-width:150px">
+            <label>加载器</label>
+            <select id="mod-loader"></select>
+          </div>
+          <div style="flex:1;min-width:140px">
+            <label>游戏版本</label>
+            <input id="mod-gamever" placeholder="如 1.20.1">
+          </div>
+          <div style="flex:1;min-width:140px">
+            <label>排序</label>
+            <select id="mod-index">
+              <option value="relevance">相关度</option>
+              <option value="downloads">下载量</option>
+              <option value="follows">关注数</option>
+              <option value="newest">最新发布</option>
+              <option value="updated">最近更新</option>
+            </select>
+          </div>
+        </div>
+        <div class="hint">默认只显示<b>服务端可用</b>的项目。选择实例后会自动填好加载器与游戏版本。</div>
+      </div>
+
+      <div id="mod-results-wrap" class="card" style="margin-bottom:16px;display:none">
+        <h3>📦 搜索结果 <span class="badge blue" id="mod-result-count">0</span></h3>
+        <div id="mod-results"></div>
+      </div>
+
+      <div class="card">
+        <h3>🗂️ 已安装（实例: <span id="mod-installed-instance">—</span>）</h3>
+        <div id="mod-installed" class="hint">选择实例后显示</div>
+      </div>
+    </section>
+
+    <!-- ============ 控制台 ============ -->
+    <section class="section" id="page-console">
+      <div class="page-title">控制台</div>
+      <div class="page-sub">实时日志与命令输入（等价于服务器终端）</div>
+      <div class="card">
+        <div class="console" id="console-box"></div>
+        <div class="console-input">
+          <input id="cmd-input" placeholder='输入命令后回车，如: say 你好 / op Steve / whitelist add xxx'>
+          <button class="btn blue" id="cmd-send">发送</button>
+        </div>
+        <div class="row mt">
+          <button class="btn sm" data-cmd="list">👥 list</button>
+          <button class="btn sm" data-cmd="tps">📶 tps</button>
+          <button class="btn sm" data-cmd="save-all">💾 save-all</button>
+          <button class="btn sm" data-cmd="whitelist list">📃 whitelist list</button>
+          <button class="btn sm red" data-cmd="stop">■ stop</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 联机设置 ============ -->
+    <section class="section" id="page-network">
+      <div class="page-title">联机设置</div>
+      <div class="page-sub">玩家连入你服务器的方式（远程管理面板请用左侧「🕸️ 远程访问」）</div>
+
+      <div class="grid g2" style="margin-bottom:16px">
+        <div class="card mode-card" data-mode="direct">
+          <div class="row" style="justify-content:space-between"><b style="font-size:15px">🌍 自有公网 IP</b><input type="radio" name="netmode" value="direct" style="width:auto"></div>
+          <div class="hint" style="margin-top:10px">有公网 IP / 已做端口映射。玩家直连 <code>IP:端口</code>。<b>无人数限制</b>，最稳定。</div>
+        </div>
+        <div class="card mode-card" data-mode="taowa">
+          <div class="row" style="justify-content:space-between"><b style="font-size:15px">🏺 陶瓦联机</b><input type="radio" name="netmode" value="taowa" style="width:auto"></div>
+          <div class="hint" style="margin-top:10px">Terracotta 免费联机，房间码即开即玩。全局同时 <b style="color:var(--yellow)">6 个</b>普通用户，<b style="color:var(--purple)">贡献者不限</b>。</div>
+        </div>
+      </div>
+
+      <!-- 公网入口（免房间号直连） -->
+      <div class="card" style="margin-bottom:16px;border-color:var(--green)">
+        <h3>🌐 公网入口 —— 玩家免装软件、免房间号直连</h3>
+        <div class="hint" style="margin-bottom:12px">
+          开启后，你的服务器会通过 EasySUS 的公网服务器对外提供一个<b>固定地址</b>，
+          玩家在 Minecraft「多人游戏」里直接添加 <code>地址:端口</code> 即可进服 —— 不需要陶瓦、不需要房间号、不需要装任何东西。<br>
+          原理：本机 EasyTier 组网 ↔ 公网服务器端口转发（自动完成）。占用 1 个远程访问额度（贡献者豁免）。
+        </div>
+        <div class="row">
+          <button class="btn green sm" id="gw-open">🚀 开启公网入口</button>
+          <button class="btn red sm" id="gw-close">停止</button>
+          <span class="badge yellow" id="gw-state">未开启</span>
+        </div>
+        <div class="kv mt"><span class="k">🎮 玩家连接地址</span><span class="v" style="font-size:16px;font-weight:700;color:var(--green)" id="gw-address">—</span></div>
+        <div class="kv"><span class="k">转发目标</span><span class="v" id="gw-target">—</span></div>
+        <div class="row mt">
+          <button class="btn sm" id="gw-copy" disabled>📋 复制玩家地址</button>
+        </div>
+        <div class="hint mt" id="gw-hint">先启动服务器，再点「开启公网入口」。首次开启会自动启动本机 EasyTier 组网（Windows 需管理员权限）。</div>
+        <pre id="gw-log" class="code-block mt" style="height:100px;overflow-y:auto;display:none"></pre>
+      </div>
+
+      <!-- 陶瓦面板 -->
+      <div class="card" id="panel-taowa" style="display:none;margin-bottom:16px">
+        <h3>🏺 陶瓦联机 (Terracotta)</h3>
+        <div class="row">
+          <span id="terra-install-state" class="badge yellow">检测中</span>
+          <button class="btn blue sm" id="terra-install">⬇️ 下载安装陶瓦联机</button>
+          <select id="terra-mirror" style="width:180px">
+            <option value="auto">自动选源（国内优先）</option>
+            <option value="gitee">Gitee 国内镜像</option>
+            <option value="github">GitHub 官方</option>
+            <option value="cnb">CNB 镜像</option>
+          </select>
+        </div>
+        <div id="terra-install-progress" style="display:none;margin-top:10px">
+          <div id="terra-install-text" style="font-size:13px"></div>
+          <div class="progress"><div id="terra-install-bar"></div></div>
+        </div>
+        <div class="divider" style="height:1px;background:var(--border);margin:14px 0"></div>
+        <div class="row">
+          <button class="btn green sm" id="terra-start">启动陶瓦</button>
+          <button class="btn blue sm" id="terra-host">🏠 创建房间</button>
+          <button class="btn red sm" id="terra-stop">停止陶瓦</button>
+          <span id="terra-state-badge" class="badge yellow">未运行</span>
+        </div>
+        <div class="kv mt"><span class="k">房间码（发给玩家）</span><span class="v"><span class="room-code" id="terra-room" style="font-size:16px">—</span></span></div>
+        <div class="kv"><span class="k">房内成员</span><span class="v" id="terra-profiles">—</span></div>
+        <div class="kv"><span class="k">局域网广播</span><span class="v" id="terra-broadcast">未开启</span></div>
+        <div class="kv"><span class="k">版本</span><span class="v" id="terra-meta">—</span></div>
+        <pre id="terra-log" class="code-block mt" style="height:140px;overflow-y:auto"></pre>
+        <div class="hint">
+          <b>为什么点「创建房间」会一直扫描？</b>陶瓦不扫描端口，而是监听 Minecraft 的<b>局域网广播</b>（组播 224.0.2.60:4445）；
+          单人存档「对局域网开放」会自动发广播，但专用服务端（server.jar）不会 —— 所以 EasySUS 会<b>自动代替服务端发广播</b>，
+          创建房间时开启、房间就绪后自动关闭。<br>
+          ⚠️ 创建房间前请先在「状态总览」<b>启动服务器</b>，否则陶瓦找不到可联机的端口。<br>
+          玩家操作：安装陶瓦联机 → 输入房间码 → 在多人游戏列表双击「陶瓦联机大厅」加入。<br>
+          本程序通过 Terracotta 官方 HTTP API 集成 · 陶瓦联机 © burningtnt (AGPL-3.0)
+        </div>
+      </div>
+
+      <!-- 通用设置 -->
+      <div class="grid g2">
+        <div class="card">
+          <h3>⚙️ 基本设置</h3>
+          <div class="field">
+            <label>服务器端口（公网IP模式 / EasyTier 映射端口）</label>
+            <input type="number" id="net-direct-port" value="25565">
+          </div>
+          <div class="row">
+            <div style="flex:1"><label>昵称</label><input id="net-nickname"></div>
+            <div style="flex:1"><label>请求人数+1（陶瓦申请槽位）</label><input type="number" id="net-slots" min="2" value="7"></div>
+          </div>
+        </div>
+        <div class="card">
+          <h3>🎫 联机服务状态</h3>
+          <div class="kv"><span class="k">服务</span><span class="v" id="net-coord-badge">检测中</span></div>
+          <div class="grid g3 mt" id="net-coord-grid">
+            <div class="stat"><h3>🏺 陶瓦联机</h3><div class="value" id="net-coord-taowa">- / 6</div></div>
+            <div class="stat"><h3>🕸️ 远程访问</h3><div class="value" id="net-coord-et">- / 8</div></div>
+            <div class="stat"><h3>⭐ 贡献者</h3><div class="value" id="net-coord-contrib">-</div></div>
+          </div>
+          <div class="hint">额度由内置联机服务统一仲裁并自动均衡，无需也无法手动配置。</div>
+        </div>
+      </div>
+      <div class="row mt">
+        <button class="btn blue" id="net-save">💾 保存联机设置</button>
+      </div>
+    </section>
+
+    <!-- ============ 远程访问 (EasyTier) ============ -->
+    <section class="section" id="page-remote">
+      <div class="page-title">🕸️ 远程访问控制面板</div>
+      <div class="page-sub">用 EasyTier 组网，从任何设备远程打开这个 EasySUS 管理面板（不是玩家联机）</div>
+
+      <div class="card" style="margin-bottom:16px;background:linear-gradient(90deg,color-mix(in srgb,var(--accent) 12%,transparent),transparent);border-color:var(--accent)">
+        <div class="row">
+          <span style="font-size:24px">💡</span>
+          <div class="hint" style="font-size:13px;margin:0">
+            <b>用途说明：</b>EasyTier 在本机和你的其它设备之间建立一个私有虚拟局域网。启动后，你可以在手机、笔记本等任意设备上，
+            通过虚拟 IP 访问本机这个 EasySUS 控制面板（如 <code>http://10.144.144.1:19388</code>），远程开关服、看状态、跑命令。
+            <b style="color:var(--yellow)">这不影响玩家如何连入 MC 服务器</b>——玩家联机请在「联机设置」选陶瓦或公网 IP。
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>🕸️ EasyTier 组网</h3>
+        <div class="row">
+          <span id="et-install-state" class="badge yellow">检测中</span>
+          <button class="btn blue sm" id="et-install">⬇️ 下载安装 EasyTier</button>
+          <select id="et-mirror" style="width:180px">
+            <option value="auto">自动选源</option>
+            <option value="gitee">Gitee 国内镜像</option>
+            <option value="github">GitHub 官方</option>
+          </select>
+        </div>
+        <div id="et-install-progress" style="display:none;margin-top:10px">
+          <div id="et-install-text" style="font-size:13px"></div>
+          <div class="progress"><div id="et-install-bar"></div></div>
+        </div>
+        <div style="height:1px;background:var(--border);margin:14px 0"></div>
+        <div class="row">
+          <button class="btn green sm" id="et-start">启动组网</button>
+          <button class="btn red sm" id="et-stop">停止组网</button>
+          <span id="et-state-badge" class="badge yellow">未运行</span>
+          <span class="badge purple">远程访问最多 8 台设备</span>
+        </div>
+        <div class="kv mt"><span class="k">网络名</span><span class="v"><code id="et-netname">—</code></span></div>
+        <div class="kv"><span class="k">网络密钥</span><span class="v"><code id="et-secret">—</code></span></div>
+        <div class="kv"><span class="k">本机虚拟 IP</span><span class="v"><code id="et-vip">—</code></span></div>
+        <div class="kv"><span class="k">📱 远程面板地址</span><span class="v" style="color:var(--green);font-weight:700;font-size:15px" id="et-panel-url">—</span></div>
+        <pre id="et-log" class="code-block mt" style="height:140px;overflow-y:auto"></pre>
+        <div class="hint" id="et-guide">—</div>
+      </div>
+    </section>
+
+    <!-- ============ Java 环境 ============ -->
+    <section class="section" id="page-java">
+      <div class="page-title">Java 环境</div>
+      <div class="page-sub">检测与安装 Minecraft 服务端所需的 Java</div>
+      <div class="card" style="margin-bottom:16px">
+        <h3>🔎 系统已安装的 Java</h3>
+        <div id="java-list" class="hint">检测中...</div>
+      </div>
+      <div class="card">
+        <h3>⬇️ 一键安装 Java</h3>
+        <div class="hint" style="margin-bottom:12px">
+          MC 1.20.5+ 需要 <b>Java 21</b>；1.17–1.20.4 需要 <b>Java 17</b>；1.16 及以下需要 <b>Java 8</b>。<br>
+          下载 Eclipse Temurin 并解压到 EasySUS 数据目录，不影响系统环境。
+        </div>
+        <div class="row">
+          <select id="java-major" style="width:180px">
+            <option value="21">Java 21（推荐）</option>
+            <option value="17">Java 17</option>
+            <option value="8">Java 8</option>
+          </select>
+          <button class="btn blue" id="java-download">⬇️ 下载并安装</button>
+        </div>
+        <div id="java-progress" style="display:none;margin-top:14px">
+          <div id="java-progress-text" style="font-size:13px"></div>
+          <div class="progress"><div id="java-progress-bar"></div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 界面颜色 ============ -->
+    <section class="section" id="page-theme">
+      <div class="page-title">🎨 界面颜色</div>
+      <div class="page-sub">按你的喜好调整 EasySUS 的 UI 配色，立即生效并自动保存</div>
+
+      <div class="card" style="margin-bottom:16px">
+        <h3>预设主题</h3>
+        <div class="pick-grid" id="theme-presets"></div>
+      </div>
+
+      <div class="card">
+        <h3>🖌️ 自定义颜色</h3>
+        <div class="hint" style="margin-bottom:14px">选择「自定义」预设后可逐项调整；改任意颜色会自动切换到自定义主题。</div>
+        <div class="grid g4" id="theme-colors"></div>
+        <div class="row mt">
+          <button class="btn blue" id="theme-reset">恢复默认配色</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 贡献服务器 ============ -->
+    <section class="section" id="page-contribute">
+      <div class="page-title">💜 贡献你的服务器</div>
+      <div class="page-sub">贡献者享受永久特权：陶瓦 6 人 / 远程访问 8 台上限全部豁免</div>
+
+      <div class="grid g2">
+        <div class="card">
+          <h3>🎁 贡献者特权</h3>
+          <div class="kv"><span class="k">陶瓦联机 6 人上限</span><span class="v"><span class="badge purple">豁免 · 不占额度</span></span></div>
+          <div class="kv"><span class="k">远程访问 8 台上限</span><span class="v"><span class="badge purple">豁免 · 不占额度</span></span></div>
+          <div class="kv"><span class="k">额度排队</span><span class="v"><span class="badge purple">永不排队</span></span></div>
+        </div>
+        <div class="card">
+          <h3>📮 如何获得捐赠令牌</h3>
+          <div class="hint" style="line-height:2;font-size:13px">
+            1️⃣ 前往 EasySUS 的 <b>GitHub Issues</b> 页面提交一个 issue<br>
+            2️⃣ 标题写 <code>申请捐赠令牌</code>，正文简单说明你贡献的服务器情况<br>
+            3️⃣ 管理员核实后会在 issue 里回复你的专属令牌<br>
+            4️⃣ 把令牌填到下方认领，立即生效 🎉
+          </div>
+          <div class="hint" style="margin-top:8px">
+            💡 最容易的贡献方式：把一台公网服务器做成 <b>EasyTier 公共共享节点</b>（一条命令的事，见下方「贡献方式一」教程）
+          </div>
+          <a class="btn sm mt" style="display:inline-block;text-decoration:none" href="https://github.com/easysus/easysus/issues/new?template=donation-token.yml" target="_blank">📝 去提交 Issue</a>
+        </div>
+      </div>
+
+      <div class="card mt">
+        <h3>🔑 认领捐赠令牌</h3>
+        <div class="row">
+          <div style="flex:1;max-width:340px">
+            <input id="contrib-token" placeholder="管理员在 issue 里发给你的令牌">
+          </div>
+          <button class="btn blue" id="contrib-claim">✅ 认领并成为贡献者</button>
+        </div>
+        <div id="contrib-result" class="hint" style="margin-top:10px"></div>
+      </div>
+
+      <div class="card mt">
+        <h3>🕸️ 贡献方式一：捐赠服务器至 EasyTier（公共共享节点）</h3>
+        <div class="hint" style="margin-bottom:12px">
+          把你的公网服务器变成 EasyTier 的<b>公共共享节点</b>，所有没有公网 IP 的用户都能借它组网、联机。
+          官方设计上，<b>不带任何参数启动 <code>easytier-core</code> 即为公共共享节点</b>（不需要 root 权限），门槛极低。
+          贡献后请提交 issue 登记，即可领取捐赠令牌成为贡献者 ⭐
+        </div>
+
+        <div style="border-left:3px solid var(--accent);padding-left:14px;margin-bottom:16px">
+          <b>① 准备一台公网服务器</b>
+          <div class="hint" style="margin-top:4px">Linux（推荐 Debian/Ubuntu）或 Windows 均可，1 核 1G、按流量计费的小机器就够用。EasyTier 是去中心化的，节点之间会对等转发。</div>
+        </div>
+
+        <div style="border-left:3px solid var(--accent);padding-left:14px;margin-bottom:16px">
+          <b>② 安装 EasyTier 并启动共享节点</b>
+          <div class="hint" style="margin:4px 0 8px">
+            下载对应平台的发行包（<a href="https://github.com/EasyTier/EasyTier/releases" target="_blank">GitHub Releases</a> /
+            <a href="https://easytier.cn/guide/download.html" target="_blank">官网下载页</a>），解压后执行：
+          </div>
+          <pre class="code-block" data-copy># 不带参数启动 = 公共共享节点（无需 root、无需配置网络名/密钥）
+./easytier-core</pre>
+          <div class="hint">默认监听 TCP/UDP 11010、WG 11011、QUIC 11012、FakeTCP 11013，记得在安全组/防火墙放行这些端口。</div>
+        </div>
+
+        <div style="border-left:3px solid var(--accent);padding-left:14px;margin-bottom:16px">
+          <b>③ 配置开机自启（Linux systemd）</b>
+          <div class="hint" style="margin:4px 0 8px">
+            公共节点的 fd 消耗较大，务必设置 <code>LimitNOFILE</code>，否则会因文件描述符耗尽而拒绝服务：
+          </div>
+          <pre class="code-block" data-copy>sudo tee /etc/systemd/system/easytier.service > /dev/null <<'EOF'
+[Unit]
+Description=EasyTier Public Shared Node
+After=network.target syslog.target
+Wants=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/easytier-core
+Restart=always
+RestartSec=3
+LimitNOFILE=1048576
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+sudo systemctl daemon-reload
+sudo systemctl enable --now easytier</pre>
+        </div>
+
+        <div style="border-left:3px solid var(--yellow);padding-left:14px;margin-bottom:16px">
+          <b>④ 建议：配置 fail2ban 挡掉无效连接（可选但强烈推荐）</b>
+          <div class="hint" style="margin:4px 0 8px">
+            公共节点会被大量连不上的客户端反复重试，日志形如
+            <code>wait handshake timeout</code>。用 fail2ban 自动封禁可显著降低连接数、提升服务质量：
+          </div>
+          <pre class="code-block" data-copy># 安装并启用
+sudo apt install -y fail2ban && sudo systemctl enable --now fail2ban   # Debian/Ubuntu
+
+# 日志过滤器
+sudo tee /etc/fail2ban/filter.d/easytier.conf > /dev/null <<'EOF'
+[Definition]
+failregex = remote: \S+://<HOST>:\d+, err: wait resp error:.+
+EOF
+
+# 封禁策略：10 分钟内失败 3 次，封 1 小时
+sudo tee /etc/fail2ban/jail.local > /dev/null <<'EOF'
+[easytier]
+enabled  = true
+filter   = easytier
+backend  = systemd
+journalmatch = '_SYSTEMD_UNIT=easytier.service'
+maxretry = 3
+bantime  = 3600
+findtime = 600
+banaction = nftables-multiport
+EOF
+
+sudo fail2ban-client reload
+sudo fail2ban-client status easytier   # 查看已封禁列表</pre>
+        </div>
+
+        <div style="border-left:3px solid var(--yellow);padding-left:14px;margin-bottom:16px">
+          <b>⑤ 进阶选项（按需）</b>
+          <div class="hint" style="line-height:2;margin-top:4px">
+            · <b>只帮别人打洞、不转发流量</b>：<code>easytier-core --relay-network-whitelist --relay-all-peer-rpc</code><br>
+            · <b>只服务自己的网络</b>（不做公共节点）：<code>easytier-core --private-mode true --network-name 你的网络 --network-secret 你的密钥</code><br>
+            · <b>限定只转发某些网络</b>：<code>--relay-network-whitelist "ab* abc"</code>
+          </div>
+        </div>
+
+        <div style="border-left:3px solid var(--green);padding-left:14px">
+          <b>⑥ 提交 issue 登记并领取令牌</b>
+          <div class="hint" style="margin-top:4px">
+            在 issue 中提供：服务器大致配置（CPU/内存/带宽）、所在地区、已开放的端口，
+            管理员核实后会回复你的专属捐赠令牌。把它填到上面的「认领捐赠令牌」即可成为贡献者，
+            <b style="color:var(--purple)">陶瓦 6 人与远程访问 8 台上限全部豁免</b>。
+          </div>
+        </div>
+      </div>
+
+      <div class="card mt">
+        <h3>🛠️ 贡献方式二：部署联机服务</h3>
+        <div class="hint" style="line-height:2">
+          把公网服务器部署为 EasySUS Coordinator，为全体陶瓦/EasyTier 用户提供额度仲裁：<br>
+          1. 上传 <code>coordinator/</code> 到你的服务器（Node.js ≥ 16 即可）<br>
+          2. <code>node server.js</code>，放行端口<br>
+          3. 在 issue 中告知管理员你的部署地址，经确认后登记为贡献者并合并令牌池
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+<div class="toast-wrap" id="toasts"></div>
+
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const api = async (p, opts) => (await fetch('/api' + p, opts)).json();
+const post = (p, body) => api(p, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body||{}) });
+const escapeHtml = s => String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+function toast(msg, type='') {
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  el.textContent = msg;
+  $('toasts').appendChild(el);
+  setTimeout(() => el.remove(), 4500);
+}
+
+function goto(page) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  $('page-' + page).classList.add('active');
+  document.querySelector(`.nav-item[data-page="${page}"]`)?.classList.add('active');
+  if (page === 'download') loadDownloadPage();
+  if (page === 'mods') loadModsPage();
+  if (page === 'java') loadJavaPage();
+  if (page === 'network') loadNetworkPage();
+  if (page === 'theme') loadThemePage();
+}document.querySelectorAll('.nav-item').forEach(n => n.onclick = () => goto(n.dataset.page));
+
+// ================= 主题 =================
+const THEMES = {
+  default: { name:'经典深蓝', bg:'#0d1117', panel:'#161b27', panel2:'#1c2333', border:'#2a3348', text:'#e6e9f0', muted:'#8b94a7', accent:'#58a6ff', green:'#3fb950', red:'#f85149', yellow:'#d29922', purple:'#bc8cff', grass:'#5d9c40' },
+  grass:   { name:'青草牧场', bg:'#10170e', panel:'#182115', panel2:'#1f2a1b', border:'#31402a', text:'#e9f0e4', muted:'#93a58b', accent:'#7ec850', green:'#5ddb6e', red:'#e8674f', yellow:'#e0b341', purple:'#b490db', grass:'#5d9c40' },
+  ocean:   { name:'深海之境', bg:'#0a1220', panel:'#101c30', panel2:'#16243c', border:'#24385a', text:'#e2ecf7', muted:'#82a0c0', accent:'#47b8e0', green:'#3ddc97', red:'#ff6b6b', yellow:'#ffd166', purple:'#9d8df1', grass:'#2e8b6e' },
+  sunset:  { name:'落日熔金', bg:'#17100c', panel:'#221712', panel2:'#2c1e17', border:'#4a3226', text:'#f5e9e0', muted:'#b59a86', accent:'#ff9e57', green:'#8fd14f', red:'#ff6b5e', yellow:'#ffc94d', purple:'#d68fff', grass:'#9c7a3c' },
+  purple:  { name:'紫水晶洞', bg:'#120d1c', panel:'#1a1228', panel2:'#241a36', border:'#3a2b55', text:'#eee6f9', muted:'#a190bd', accent:'#b58cff', green:'#59d98c', red:'#ff6b8a', yellow:'#ffd36e', purple:'#c9a4ff', grass:'#7a5da8' },
+  light:   { name:'雪白极简', bg:'#f5f6f8', panel:'#ffffff', panel2:'#eef0f4', border:'#d8dce4', text:'#24292f', muted:'#6a737d', accent:'#0969da', green:'#1a7f37', red:'#cf222e', yellow:'#9a6700', purple:'#8250df', grass:'#4c9a2a' },
+};
+const COLOR_FIELDS = [['bg','背景'],['panel','卡片'],['panel2','次级背景'],['border','边框'],['text','正文'],['muted','次要文字'],['accent','强调色'],['green','绿色(在线)'],['red','红色(离线)'],['yellow','黄色(警告)'],['purple','紫色(贡献)'],['grass','草方块绿']];
+let curTheme = { preset: 'default', custom: null };
+
+function applyTheme(theme) {
+  const t = theme.preset === 'custom' && theme.custom
+    ? Object.assign({}, THEMES.default, theme.custom)
+    : (THEMES[theme.preset] || THEMES.default);
+  const r = document.documentElement.style;
+  r.setProperty('--bg', t.bg); r.setProperty('--panel', t.panel); r.setProperty('--panel2', t.panel2);
+  r.setProperty('--border', t.border); r.setProperty('--text', t.text); r.setProperty('--muted', t.muted);
+  r.setProperty('--accent', t.accent); r.setProperty('--blue', t.accent); r.setProperty('--green', t.green);
+  r.setProperty('--red', t.red); r.setProperty('--yellow', t.yellow); r.setProperty('--purple', t.purple); r.setProperty('--grass', t.grass);
+  // 亮色主题下按钮文字自适应
+  document.querySelectorAll('.btn.green,.btn.red,.btn.blue').forEach(b => b.style.color = '#fff');
+}
+async function saveTheme(patch) {
+  const r = await post('/theme', patch);
+  if (r.ok) { curTheme = r.theme; applyTheme(curTheme); }
+}
+function loadThemePage() {
+  // 预设卡片
+  let html = Object.entries(THEMES).map(([id, t]) => `
+    <div class="pick ${curTheme.preset===id?'selected':''}" data-preset="${id}">
+      <div style="display:flex;gap:5px;margin-bottom:8px">
+        <span style="width:22px;height:22px;border-radius:6px;background:${t.bg};border:1px solid ${t.border}"></span>
+        <span style="width:22px;height:22px;border-radius:6px;background:${t.panel};border:1px solid ${t.border}"></span>
+        <span style="width:22px;height:22px;border-radius:6px;background:${t.accent}"></span>
+        <span style="width:22px;height:22px;border-radius:6px;background:${t.green}"></span>
+      </div>
+      <b>${t.name}</b>
+    </div>`).join('');
+  html += `
+    <div class="pick ${curTheme.preset==='custom'?'selected':''}" data-preset="custom">
+      <div style="display:flex;gap:5px;margin-bottom:8px">
+        <span style="width:22px;height:22px;border-radius:6px;background:conic-gradient(red,yellow,lime,cyan,blue,magenta,red)"></span>
+      </div>
+      <b>🖌️ 自定义</b>
+    </div>`;
+  $('theme-presets').innerHTML = html;
+  document.querySelectorAll('[data-preset]').forEach(el => el.onclick = () => {
+    const id = el.dataset.preset;
+    if (id === 'custom') {
+      const base = THEMES[curTheme.preset] || THEMES.default;
+      saveTheme({ preset: 'custom', custom: curTheme.custom || Object.assign({}, base) });
+    } else {
+      saveTheme({ preset: id });
+    }
+    loadThemePage();
+  });
+  // 自定义颜色
+  const t = curTheme.preset === 'custom' && curTheme.custom
+    ? Object.assign({}, THEMES.default, curTheme.custom)
+    : (THEMES[curTheme.preset] || THEMES.default);
+  $('theme-colors').innerHTML = COLOR_FIELDS.map(([k, label]) => `
+    <div>
+      <label>${label}</label>
+      <input type="color" data-color="${k}" value="${t[k]}">
+    </div>`).join('');
+  document.querySelectorAll('[data-color]').forEach(inp => inp.oninput = async () => {
+    const custom = Object.assign({}, t, curTheme.custom || {}, { [inp.dataset.color]: inp.value });
+    curTheme = { preset: 'custom', custom };
+    applyTheme(curTheme);
+    clearTimeout(window._themeSaveT);
+    window._themeSaveT = setTimeout(() => saveTheme({ preset: 'custom', custom }), 500);
+    document.querySelectorAll('[data-preset]').forEach(el => el.classList.toggle('selected', el.dataset.preset === 'custom'));
+  });
+}
+$('theme-reset').onclick = async () => { await saveTheme({ preset: 'default', custom: null }); loadThemePage(); toast('已恢复默认配色', 'ok'); };
+
+// ================= 状态轮询 =================
+let lastStatus = null, lastLogLen = -1;
+async function pollStatus() {
+  try {
+    const s = await api('/status');
+    lastStatus = s;
+    if (s.theme && JSON.stringify(s.theme) !== JSON.stringify(curTheme)) { curTheme = s.theme; applyTheme(curTheme); }
+    renderDashboard(s);
+    renderConsoleIfOpen();
+    if ($('page-network').classList.contains('active')) { renderTerracotta(s); renderCoordinator(s); renderGateway(s); }
+    if ($('page-remote').classList.contains('active')) renderEasytier(s);
+  } catch (e) {}
+}
+function fmtUptime(ms) {
+  if (!ms) return '--';
+  const s = Math.floor(ms/1000), h = Math.floor(s/3600), m = Math.floor(s%3600/60);
+  return h ? `${h}小时${m}分` : `${m}分${s%60}秒`;
+}
+function renderSlots(el, used, limit, icon) {
+  el.innerHTML = '';
+  for (let i = 0; i < limit; i++) {
+    const d = document.createElement('div');
+    d.className = 'slot ' + (i < used ? 'used' : 'free');
+    d.textContent = i < used ? icon : '·';
+    el.appendChild(d);
+  }
+}
+function renderDashboard(s) {
+  const sv = s.server, net = s.network;
+  $('d-dot').className = 'dot ' + (sv.running ? (sv.starting ? 'starting' : 'on') : 'off');
+  $('d-state').textContent = sv.running ? (sv.starting ? '启动中...' : '运行中') : '未运行';
+  $('d-instance').textContent = sv.running ? `${sv.type} ${sv.version}` : '尚未选择服务端实例';
+  $('d-players').textContent = `${sv.players.online} / ${sv.players.max || '?'}`;
+  $('d-player-list').textContent = sv.players.list.length ? sv.players.list.join(', ') : '—';
+  $('d-uptime').textContent = fmtUptime(sv.uptimeMs);
+  $('d-tps').textContent = sv.tps != null ? Number(sv.tps).toFixed(1) : '--';
+  $('d-type').textContent = sv.type || '—';
+  $('d-version').textContent = sv.version || '—';
+  $('d-java').textContent = sv.java || '—';
+  $('d-pid').textContent = sv.pid || '—';
+  $('d-start').disabled = sv.running;
+  $('d-stop').disabled = !sv.running;
+
+  const sel = $('d-instance-select'), cur = sel.value;
+  sel.innerHTML = s.instances.length ? s.instances.map(i => `<option value="${i.id}">${i.id}</option>`).join('') : '<option value="">（暂无，请先下载）</option>';
+  if (cur && s.instances.some(i => i.id === cur)) sel.value = cur;
+
+  // 侧边栏联机服务状态（不显示地址）
+  const c = net.coordinator;
+  if (c && c.connected) { $('sb-coord-state').style.color = 'var(--green)'; $('sb-coord-text').textContent = '已连接'; }
+  else { $('sb-coord-state').style.color = 'var(--red)'; $('sb-coord-text').textContent = '离线'; }
+
+  // 联机
+  const modeName = { direct: '🌍 自有公网IP', taowa: '🏺 陶瓦联机' }[net.mode];
+  $('d-netmode').textContent = modeName;
+  if (net.mode === 'taowa') {
+    const room = net.taowa.room;
+    $('d-netinfo').textContent = room ? `房间码 ${room}` : (net.taowa.running ? '陶瓦运行中，未开房' : '陶瓦未启动');
+    $('d-room').textContent = room || '—';
+    $('d-address').textContent = room ? `房间码: ${room}` : '—';
+  } else {
+    $('d-netinfo').textContent = `端口 ${net.direct.port}`;
+    $('d-room').textContent = '—';
+    $('d-address').textContent = `你的公网IP:${net.direct.port}`;
+  }
+  // 公网入口开启时优先显示（任何联机模式都可用）
+  const gw = net.gateway;
+  if (gw && (gw.status === 'ready' || gw.status === 'starting') && gw.publicAddress) {
+    $('d-address').textContent = gw.publicAddress;
+    $('d-netinfo').textContent = `🌐 公网入口 ${gw.publicAddress}`;
+  }
+
+  // 额度
+  if (c && c.ok) {
+    $('d-q-taowa').textContent = `${c.taowa.activeUsers} / ${c.taowa.limit}`;
+    renderSlots($('d-q-taowa-slots'), c.taowa.activeUsers, c.taowa.limit, '🏺');
+    $('d-q-et').textContent = `${c.easytier.activeUsers} / ${c.easytier.limit}`;
+    renderSlots($('d-q-et-slots'), c.easytier.activeUsers, c.easytier.limit, '🕸️');
+    let hint = `贡献者 ${c.totalContributors} 人 · 待认领令牌 ${c.unclaimedContributions} 个`;
+    const myT = net.taowa.session, myE = net.easytier.session;
+    if (myT) hint += (myT.contributed ? ' · 你是贡献者⭐(陶瓦)' : ' · 你占用 1 个陶瓦额度');
+    if (myE) hint += (myE.contributed ? ' · 你是贡献者⭐(远程)' : ' · 你占用 1 个远程访问额度');
+    if (c.taowa.remaining === 0 || c.easytier.remaining === 0) hint += ' · 有额度已满，贡献可豁免 💜';
+    $('d-quota-hint').textContent = hint;
+  } else {
+    $('d-q-taowa').textContent = '离线'; $('d-q-et').textContent = '离线';
+    $('d-q-taowa-slots').innerHTML = ''; $('d-q-et-slots').innerHTML = '';
+    $('d-quota-hint').textContent = c ? (c.error || '无法连接联机服务') : '';
+  }
+}
+
+$('d-start').onclick = async () => {
+  const id = $('d-instance-select').value;
+  if (!id) return toast('请先在「下载服务端」页下载一个服务端', 'warn');
+  $('d-start').disabled = true;
+  const r = await post('/server/start', { instanceId: id, memoryMb: Number($('d-memory').value) });
+  if (r.ok) toast('服务端启动中...', 'ok');
+  else {
+    $('d-start').disabled = false;
+    if (r.error === 'TAOWA_QUOTA' || r.error === 'EASYTIER_QUOTA') {
+      toast((r.detail && r.detail.message) || '额度已满', 'err');
+      if (r.detail && r.detail.contributeHint) setTimeout(() => goto('contribute'), 1500);
+    } else if (r.error === 'NO_JAVA') { toast(r.message || '未检测到 Java', 'err'); setTimeout(() => goto('java'), 1500); }
+    else toast((r.error||'') + ': ' + (r.message || ''), 'err');
+  }
+};
+$('d-stop').onclick = async () => { $('d-stop').disabled = true; await post('/server/stop'); toast('已发送 stop，正在安全关闭...', 'ok'); };
+
+// ================= 控制台 =================
+function renderConsoleIfOpen() {
+  if (!$('page-console').classList.contains('active') || !lastStatus) return;
+  const box = $('console-box');
+  const lines = lastStatus.server.console || [];
+  if (lines.length !== lastLogLen) {
+    lastLogLen = lines.length;
+    box.innerHTML = lines.map(l => {
+      const cls = l.line.startsWith('[stderr]') ? 'err' : (l.line.startsWith('>') ? 'cmd' : '');
+      return `<div class="line ${cls}">${escapeHtml(l.line)}</div>`;
+    }).join('');
+    box.scrollTop = box.scrollHeight;
+  }
+}
+async function sendCmd() {
+  const v = $('cmd-input').value.trim();
+  if (!v) return;
+  $('cmd-input').value = '';
+  const r = await post('/server/command', { command: v });
+  if (!r.ok) toast(r.error || '发送失败', 'err');
+  lastLogLen = -1;
+}
+$('cmd-send').onclick = sendCmd;
+$('cmd-input').addEventListener('keydown', e => { if (e.key === 'Enter') sendCmd(); });
+document.querySelectorAll('[data-cmd]').forEach(b => b.onclick = () => { $('cmd-input').value = b.dataset.cmd; sendCmd(); });
+
+// ================= 下载页 =================
+let dlMeta = null, dlSelectedType = 'paper', dlTaskId = null;
+async function loadDownloadPage() {
+  if (!dlMeta) {
+    dlMeta = await api('/download/meta');
+    $('dl-sources').innerHTML = dlMeta.sources.map(s => `
+      <div class="pick ${s.id===dlMeta.currentSource?'selected':''}" data-source="${s.id}">
+        <b>${s.name}</b><small>${s.desc}</small>
+        ${s.region==='cn'?'<div class="tagline">🇨🇳 国内加速</div>':''}
+      </div>`).join('');
+    document.querySelectorAll('[data-source]').forEach(el => el.onclick = async () => {
+      document.querySelectorAll('[data-source]').forEach(x => x.classList.remove('selected'));
+      el.classList.add('selected');
+      await post('/download/source', { source: el.dataset.source });
+      $('dl-source-badge').textContent = dlMeta.sources.find(s=>s.id===el.dataset.source).name;
+      toast('下载源已切换', 'ok');
+      loadVersions();
+    });
+    $('dl-source-badge').textContent = dlMeta.sources.find(s=>s.id===dlMeta.currentSource).name;
+    $('dl-types').innerHTML = dlMeta.types.map(t => `
+      <div class="pick ${t.id===dlSelectedType?'selected':''}" data-type="${t.id}">
+        <b>${t.name}</b><small>${t.desc}</small>
+      </div>`).join('');
+    document.querySelectorAll('[data-type]').forEach(el => el.onclick = () => {
+      document.querySelectorAll('[data-type]').forEach(x => x.classList.remove('selected'));
+      el.classList.add('selected');
+      dlSelectedType = el.dataset.type;
+      loadVersions(dlSelectedType);
+    });
+    loadVersions(dlSelectedType);
+  }
+  renderInstances();
+}
+async function loadVersions(type) {
+  const sel = $('dl-version');
+  const t = type || dlSelectedType;
+  sel.innerHTML = '<option>加载中...</option>';
+  try {
+    const r = await api('/download/versions?type=' + encodeURIComponent(t));
+    if (!r.versions || !r.versions.length) throw new Error(r.error || '该类型暂无可用版本');
+    sel.innerHTML = r.versions.map(v => `<option value="${v.id}">${v.id}</option>`).join('');
+    if (r.fallback) toast(`${t} 专属版本列表获取失败，已回退到原版清单：${r.error || ''}`, 'warn');
+  } catch (e) {
+    sel.innerHTML = '<option value="">加载失败，点刷新重试</option>';
+    toast('版本列表加载失败: ' + e.message, 'err');
+  }
+}
+$('dl-refresh').onclick = () => loadVersions(dlSelectedType);
+$('dl-start').onclick = async () => {
+  const version = $('dl-version').value;
+  if (!version) return toast('请先选择版本', 'warn');
+  const r = await post('/download/start', { type: dlSelectedType, version });
+  if (!r.ok) return toast(r.error || '下载启动失败', 'err');
+  dlTaskId = r.taskId;
+  $('dl-progress').style.display = 'block';
+  toast(`开始下载 ${dlSelectedType} ${version}`, 'ok');
+  pollProgress(dlTaskId, $('dl-progress-text'), $('dl-progress-bar'), (p) => {
+    dlTaskId = null; renderInstances();
+    toast('下载完成！去「状态总览」启动吧', 'ok');
+    if (p && p.isInstaller) setTimeout(() => toast('注意：Forge 下载的是安装器 jar，首次启动前需运行一次安装（在实例目录执行）', 'warn'), 1200);
+  });
+};
+async function renderInstances() {
+  const r = await api('/instances');
+  const box = $('dl-instances');
+  if (!r.instances.length) { box.className = 'hint'; box.textContent = '暂无实例'; return; }
+  box.className = '';
+  box.innerHTML = '<div class="grid g3">' + r.instances.map(i => `
+    <div class="card" style="padding:12px">
+      <div class="row" style="justify-content:space-between">
+        <b>${i.id}</b>
+        <button class="btn sm red" data-del-instance="${i.id}" title="删除该服务端实例">🗑️</button>
+      </div>
+      <div class="hint" style="margin-top:6px">${i.mainJar ? '✅ jar 就绪' : '❌ 无 jar'}${i.eulaAccepted ? '' : ' · EULA 未同意（启动时自动同意）'}</div>
+    </div>`).join('') + '</div>';
+  box.querySelectorAll('[data-del-instance]').forEach(b => b.onclick = () => deleteInstance(b.dataset.delInstance));
+}
+async function deleteInstance(id) {
+  if (!confirm(`确定删除服务端实例「${id}」吗？\n\n该目录下的所有内容（jar、世界存档、配置文件）都会被永久删除，无法恢复！`)) return;
+  const r = await post('/instances/delete', { id });
+  if (r.ok) {
+    toast(`已删除实例 ${id}`, 'ok');
+    renderInstances();
+    pollStatus();   // 刷新总览页的实例下拉框
+  } else if (r.error === 'RUNNING') {
+    toast(r.message || '服务端正在运行，请先停止再删除', 'err');
+  } else {
+    toast(r.error || '删除失败', 'err');
+  }
+}
+
+// 通用进度轮询
+function pollProgress(taskId, textEl, barEl, onDone) {
+  (async function loop() {
+    const r = await api('/download/progress?taskId=' + encodeURIComponent(taskId));
+    const p = r.progress;
+    if (!p) return;
+    if (p.status === 'downloading') {
+      const pct = p.total ? (p.done/p.total*100) : 0;
+      barEl.style.width = pct + '%';
+      textEl.textContent = `下载中... ${p.total ? (p.done/1048576).toFixed(1)+'MB / '+(p.total/1048576).toFixed(1)+'MB ('+pct.toFixed(0)+'%)' : (p.done/1048576).toFixed(1)+'MB'}`;
+      setTimeout(loop, 600);
+    } else if (p.status === 'done') {
+      barEl.style.width = '100%';
+      textEl.textContent = '✅ 完成' + (p.note ? ' · ' + p.note : '') + (p.relayed ? ' · 直连受阻，已通过联机服务中转' : '');
+      onDone && onDone(p);
+    } else {
+      textEl.textContent = '❌ 失败: ' + p.error;
+      toast('下载失败: ' + p.error, 'err');
+    }
+  })();
+}
+
+// ================= 网络页 =================
+async function loadNetworkPage() {
+  const r = await api('/network/config');
+  document.querySelectorAll('input[name=netmode]').forEach(x => x.checked = x.value === r.netMode);
+  document.querySelectorAll('.mode-card').forEach(c => c.classList.toggle('selected', c.dataset.mode === r.netMode));
+  $('panel-taowa').style.display = r.netMode === 'taowa' ? 'block' : 'none';
+  $('net-direct-port').value = r.directPort;
+  $('net-nickname').value = r.taowa.nickname || '';
+  $('net-slots').value = r.taowa.requestedSlots || 7;
+}
+document.querySelectorAll('.mode-card').forEach(card => card.onclick = e => {
+  if (e.target.tagName === 'INPUT') return;
+  card.querySelector('input').checked = true;
+  document.querySelectorAll('.mode-card').forEach(c => c.classList.toggle('selected', c === card));
+  $('panel-taowa').style.display = card.dataset.mode === 'taowa' ? 'block' : 'none';
+});
+$('net-save').onclick = async () => {
+  const mode = document.querySelector('input[name=netmode]:checked').value;
+  const r = await post('/network/config', {
+    netMode: mode,
+    directPort: Number($('net-direct-port').value),
+    taowa: { nickname: $('net-nickname').value.trim(), requestedSlots: Number($('net-slots').value) },
+  });
+  if (r.ok) { toast('联机设置已保存', 'ok'); loadNetworkPage(); pollStatus(); }
+  else toast(r.error || '保存失败', 'err');
+};
+
+// 联机服务状态（只读，不暴露地址）
+function renderCoordinator(s) {
+  const c = s.network.coordinator || {};
+  if (c.connected) {
+    $('net-coord-badge').innerHTML = '<span class="badge green">● 已连接</span>';
+  } else {
+    $('net-coord-badge').innerHTML = '<span class="badge red">● 离线</span>';
+  }
+  if (c.ok !== false && c.taowa) {
+    $('net-coord-taowa').textContent = `${c.taowa.activeUsers} / ${c.taowa.limit}`;
+    $('net-coord-et').textContent = `${c.easytier.activeUsers} / ${c.easytier.limit}`;
+    $('net-coord-contrib').textContent = c.totalContributors;
+  } else {
+    $('net-coord-taowa').textContent = '—';
+    $('net-coord-et').textContent = '—';
+    $('net-coord-contrib').textContent = '—';
+  }
+}
+
+// ================= 公网入口 =================
+$('gw-open').onclick = async () => {
+  $('gw-open').disabled = true;
+  $('gw-hint').textContent = '开启中：正在启动组网并向公网服务申请端口（首次约需 10 秒）...';
+  const r = await post('/gateway/open');
+  $('gw-open').disabled = false;
+  if (r.ok) {
+    const addr = r.gateway && r.gateway.publicAddress;
+    toast('公网入口已开启 ✅ 玩家地址: ' + (addr || '分配中'), 'ok');
+    $('gw-hint').textContent = '已开启。把下面的玩家地址发到群里即可（域名玩法见提示）。';
+    pollStatus();
+  } else if (r.error === 'EASYTIER_QUOTA') {
+    toast((r.detail && r.detail.message) || '远程访问额度已满', 'err');
+    $('gw-hint').textContent = '额度已满：稍后再试，或贡献服务器成为贡献者（永久豁免）。';
+    if (r.detail && r.detail.contributeHint) setTimeout(() => goto('contribute'), 1500);
+  } else if (r.error === 'NEED_ADMIN' || (r.message || '').includes('管理员')) {
+    toast('需要管理员权限：请右键 start.bat →「以管理员身份运行」', 'err');
+    $('gw-hint').textContent = '❌ ' + (r.message || '本机 EasyTier 需要管理员权限创建虚拟网卡');
+  } else {
+    toast(r.message || r.error || '开启失败', 'err');
+    $('gw-hint').textContent = '❌ ' + (r.message || r.error || '开启失败');
+  }
+};
+$('gw-close').onclick = async () => {
+  const r = await post('/gateway/close');
+  if (r.ok) { toast('公网入口已停止', 'ok'); $('gw-hint').textContent = '已停止。重新开启会分配新端口。'; pollStatus(); }
+};
+$('gw-copy').onclick = async () => {
+  const addr = $('gw-address').textContent;
+  if (!addr || addr === '—') return;
+  try { await navigator.clipboard.writeText(addr); toast('已复制: ' + addr, 'ok'); }
+  catch (_) { toast('复制失败，请手动选中复制', 'err'); }
+};
+function renderGateway(s) {
+  const gw = s.network.gateway;
+  const badge = $('gw-state');
+  if (gw && (gw.status === 'ready' || gw.status === 'starting')) {
+    badge.textContent = gw.status === 'ready' ? '✅ 已开启' : '⏳ 建立中';
+    badge.className = 'badge ' + (gw.status === 'ready' ? 'green' : 'yellow');
+    $('gw-address').textContent = gw.publicAddress || '分配中...';
+    $('gw-target').textContent = gw.mcTarget || '—';
+    $('gw-copy').disabled = !gw.publicAddress;
+    if (gw.logTail && gw.logTail.length) {
+      $('gw-log').style.display = 'block';
+      $('gw-log').textContent = gw.logTail.join('\n');
+    }
+  } else if (gw && (gw.status === 'exited' || gw.status === 'error')) {
+    badge.textContent = '⚠️ 网关异常';
+    badge.className = 'badge red';
+    $('gw-hint').textContent = '公网侧转发进程异常退出，请点「停止」后重新开启（可在下方日志查看详情）';
+    if (gw.logTail && gw.logTail.length) { $('gw-log').style.display = 'block'; $('gw-log').textContent = gw.logTail.join('\n'); }
+  } else {
+    badge.textContent = '未开启';
+    badge.className = 'badge yellow';
+    $('gw-address').textContent = '—';
+    $('gw-target').textContent = '—';
+    $('gw-copy').disabled = true;
+    $('gw-log').style.display = 'none';
+  }
+}
+
+// ---- Terracotta ----
+$('terra-install').onclick = async () => {
+  const r = await post('/taowa/install', { mirror: $('terra-mirror').value });
+  if (!r.ok) return toast(r.error || '失败', 'err');
+  $('terra-install-progress').style.display = 'block';
+  toast('开始下载陶瓦联机 (~8MB)', 'ok');
+  pollProgress(r.taskId, $('terra-install-text'), $('terra-install-bar'), () => { toast('陶瓦联机安装完成 ✅', 'ok'); pollStatus(); });
+};
+$('terra-start').onclick = async () => {
+  const r = await post('/taowa/start');
+  if (r.ok) toast('陶瓦已启动' + (r.already ? '（已在运行）' : ''), 'ok');
+  else if (r.error === 'TAOWA_QUOTA') { toast((r.detail&&r.detail.message)||'额度已满','err'); if (r.detail?.contributeHint) setTimeout(()=>goto('contribute'),1500); }
+  else toast(r.message || r.error || '启动失败', 'err');
+};
+$('terra-host').onclick = async () => {
+  const r = await post('/taowa/host', {});
+  if (r.ok) toast('正在创建房间：已开启局域网广播，等待陶瓦发现服务器…', 'ok');
+  else if (r.error === 'MC_NOT_RUNNING') { toast(r.message, 'warn'); setTimeout(() => goto('dashboard'), 1500); }
+  else toast(r.message || r.error || '失败（陶瓦未启动？）', 'err');
+};
+$('terra-stop').onclick = async () => { await post('/taowa/stop'); toast('陶瓦已停止', 'ok'); };
+function renderTerracotta(s) {
+  const t = s.network.taowa;
+  $('terra-install-state').textContent = t.installed ? '✅ 已安装' : '未安装';
+  $('terra-install-state').className = 'badge ' + (t.installed ? 'green' : 'yellow');
+  $('terra-state-badge').textContent = ({ 'not-started':'未运行','waiting':'待机','host-scanning':'扫描MC端口','host-starting':'创建房间中','host-ok':'✅ 房间就绪','guest-connecting':'连接中','guest-ok':'已加入','exception':'⚠️ 异常' })[t.state] || t.state;
+  $('terra-state-badge').className = 'badge ' + (t.state === 'host-ok' ? 'green' : (t.state === 'exception' ? 'red' : 'yellow'));
+  $('terra-room').textContent = t.room || '—';
+  $('terra-profiles').textContent = (t.profiles||[]).length ? t.profiles.map(p => `${p.name}(${p.kind})`).join(', ') : '—';
+  $('terra-meta').textContent = t.meta ? `${t.meta.version} · EasyTier ${t.meta.easytier_version}` : '—';
+  const bc = t.broadcast || {};
+  $('terra-broadcast').innerHTML = bc.running
+    ? `<span class="badge green">● 广播中 :${bc.port}（已发 ${bc.sent} 次）</span>`
+    : '<span class="badge yellow">未开启</span>';
+  $('terra-log').textContent = (t.log||[]).map(l => l.line).join('\n');
+  $('terra-log').scrollTop = $('terra-log').scrollHeight;
+}
+
+// ---- EasyTier（远程访问控制面板）----
+$('et-install').onclick = async () => {
+  const r = await post('/easytier/install', { mirror: $('et-mirror').value });
+  if (!r.ok) return toast(r.error || '失败', 'err');
+  $('et-install-progress').style.display = 'block';
+  toast('开始下载 EasyTier (~25MB)', 'ok');
+  pollProgress(r.taskId, $('et-install-text'), $('et-install-bar'), () => { toast('EasyTier 安装完成 ✅', 'ok'); pollStatus(); });
+};
+$('et-start').onclick = async () => {
+  const r = await post('/easytier/start');
+  if (r.ok) toast('EasyTier 组网已启动，可用远程面板地址访问' + (r.already?'（已在运行）':''), 'ok');
+  else if (r.error === 'EASYTIER_QUOTA') { toast((r.detail&&r.detail.message)||'额度已满','err'); if (r.detail?.contributeHint) setTimeout(()=>goto('contribute'),1500); }
+  else toast(r.message || r.error || '启动失败', 'err');
+};
+$('et-stop').onclick = async () => { await post('/easytier/stop'); toast('EasyTier 已停止', 'ok'); };
+function renderEasytier(s) {
+  const e = s.network.easytier;
+  $('et-install-state').textContent = e.installed ? '✅ 已安装' : '未安装';
+  $('et-install-state').className = 'badge ' + (e.installed ? 'green' : 'yellow');
+  $('et-state-badge').textContent = e.running ? '✅ 组网运行中' : '未运行';
+  $('et-state-badge').className = 'badge ' + (e.running ? 'green' : 'yellow');
+  $('et-netname').textContent = e.netName || '—';
+  $('et-secret').textContent = e.running ? '••••••（见配置文件）' : '—';
+  $('et-vip').textContent = e.virtualIp || '—';
+  const port = (s.network && s.network.webPort) || 19388;
+  $('et-panel-url').textContent = e.running && e.virtualIp ? `http://${e.virtualIp}:${port}` : '—';
+  $('et-log').textContent = (e.log||[]).map(l => l.line).join('\n');
+  $('et-log').scrollTop = $('et-log').scrollHeight;
+  $('et-guide').textContent = e.running
+    ? '在其它设备上安装 EasyTier、用相同网络名+密钥加入组网，然后浏览器打开上面的「远程面板地址」即可远程管理。'
+    : (e.joinInfo?.guide || '启动组网后这里显示加入说明。');
+}
+
+// ================= 模组下载页 =================
+let modMeta = null, modInstances = [], modExpand = null, modVerFiles = {};
+
+async function loadModsPage() {
+  if (!modMeta) {
+    modMeta = await api('/mods/meta');
+    $('mod-type').innerHTML = '<option value="">全部类型</option>' +
+      modMeta.projectTypes.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+    $('mod-type').value = 'mod';
+    $('mod-loader').innerHTML = modMeta.loaders.map(l => `<option value="${l.id}">${l.name}</option>`).join('');
+  }
+  const s = await api('/status');
+  modInstances = s.instances || [];
+  const sel = $('mod-instance'), cur = sel.value;
+  sel.innerHTML = modInstances.length
+    ? modInstances.map(i => `<option value="${i.id}">${i.id}</option>`).join('')
+    : '<option value="">（暂无实例，请先下载服务端）</option>';
+  if (cur && modInstances.some(i => i.id === cur)) sel.value = cur;
+  applyInstanceDefaults();
+  renderInstalled();
+}
+
+function currentInstance() {
+  return modInstances.find(i => i.id === $('mod-instance').value) || null;
+}
+
+/** 根据实例类型自动选好加载器/项目类型/游戏版本 */
+function applyInstanceDefaults() {
+  const inst = currentInstance();
+  if (!inst) { $('mod-instance-hint').textContent = '请先下载一个服务端实例'; $('mod-instance-hint').className = 'badge red'; $('mod-installed-instance').textContent = '—'; return; }
+  const map = (modMeta && modMeta.loaderMap && modMeta.loaderMap[inst.type]) || { projectType: 'mod', loaders: [] };
+  $('mod-instance-hint').textContent = `${inst.type} ${inst.version} · 推荐装到 ${map.projectType === 'plugin' ? 'plugins/' : map.projectType === 'datapack' ? 'world/datapacks/' : 'mods/'}`;
+  $('mod-instance-hint').className = 'badge green';
+  $('mod-installed-instance').textContent = inst.id;
+  $('mod-type').value = map.projectType;
+  $('mod-loader').value = map.loaders.length ? map.loaders[0] : '';
+  if (!$('mod-gamever').value || $('mod-gamever').dataset.auto !== 'no') {
+    $('mod-gamever').value = inst.version || '';
+    $('mod-gamever').dataset.auto = 'yes';
+  }
+}
+$('mod-instance').onchange = () => { applyInstanceDefaults(); renderInstalled(); };
+$('mod-gamever').oninput = () => { $('mod-gamever').dataset.auto = 'no'; };
+
+async function doModSearch() {
+  const q = $('mod-query').value.trim();
+  $('mod-results-wrap').style.display = 'block';
+  $('mod-results').innerHTML = '<div class="hint">搜索中…</div>';
+  try {
+    const params = new URLSearchParams({
+      query: q,
+      type: $('mod-type').value,
+      loader: $('mod-loader').value,
+      gameVersion: $('mod-gamever').value.trim(),
+      index: $('mod-index').value,
+      limit: '20',
+    });
+    const r = await api('/mods/search?' + params.toString());
+    $('mod-result-count').textContent = `${r.total} 个结果`;
+    if (!r.hits.length) { $('mod-results').innerHTML = '<div class="hint">没有找到匹配的模组，换个关键词或放宽筛选试试。</div>'; return; }
+    $('mod-results').innerHTML = '<div class="grid g2">' + r.hits.map(h => `
+      <div class="card" style="padding:14px">
+        <div class="row" style="align-items:flex-start;gap:12px">
+          ${h.iconUrl ? `<img src="${escapeHtml(h.iconUrl)}" alt="" style="width:48px;height:48px;border-radius:8px;flex-shrink:0" onerror="this.style.display='none'">` : ''}
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:700;font-size:14.5px">${escapeHtml(h.title)}</div>
+            <div class="hint" style="margin:2px 0 6px">by ${escapeHtml(h.author)} · ⬇ ${(h.downloads||0).toLocaleString()} · ${escapeHtml(h.projectType || '')}</div>
+            <div class="hint" style="margin-bottom:8px">${escapeHtml((h.description||'').slice(0,120))}</div>
+            <div class="row" style="gap:6px">
+              ${(h.categories||[]).slice(0,5).map(c => `<span class="badge blue" style="font-size:11px">${escapeHtml(c)}</span>`).join('')}
+            </div>
+          </div>
+        </div>
+        <div class="row mt" style="gap:8px">
+          <button class="btn sm blue" onclick="modShowVersions('${h.projectId}','${escapeHtml(h.title).replace(/'/g,"\\'")}','${h.projectType||'mod'}')">📜 查看版本</button>
+          <span class="hint" style="margin:0">最新支持: ${(h.versions||[]).slice(0,4).join(', ')}</span>
+        </div>
+        <div id="mod-ver-${h.projectId}" style="display:none;margin-top:10px"></div>
+      </div>`).join('') + '</div>';
+  } catch (e) {
+    $('mod-results').innerHTML = `<div class="hint" style="color:var(--red)">搜索失败: ${escapeHtml(e.message)}<br>（Modrinth 需联网访问 api.modrinth.com）</div>`;
+  }
+}
+$('mod-search').onclick = doModSearch;
+$('mod-query').addEventListener('keydown', e => { if (e.key === 'Enter') doModSearch(); });
+
+async function modShowVersions(projectId, title, projectType) {
+  const box = $('mod-ver-' + projectId);
+  if (!box) return;
+  if (box.style.display === 'block') { box.style.display = 'none'; return; }
+  box.style.display = 'block';
+  box.innerHTML = '<div class="hint">加载版本列表…</div>';
+  try {
+    const params = new URLSearchParams({
+      projectId,
+      loader: $('mod-loader').value,
+      gameVersion: $('mod-gamever').value.trim(),
+    });
+    const r = await api('/mods/versions?' + params.toString());
+    if (!r.versions.length) {
+      box.innerHTML = '<div class="hint">没有匹配当前加载器/游戏版本的版本，试试清空筛选。</div>';
+      return;
+    }
+    r.versions.forEach(v => { modVerFiles[v.versionId] = v.file; });
+    box.innerHTML = r.versions.slice(0, 12).map(v => `
+      <div class="row" style="justify-content:space-between;border-top:1px solid var(--border);padding:8px 0;gap:8px">
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:600;font-size:13px">${escapeHtml(v.name || v.versionNumber)} <span class="badge ${v.versionType === 'release' ? 'green' : v.versionType === 'beta' ? 'yellow' : 'red'}" style="font-size:10px">${escapeHtml(v.versionType)}</span></div>
+          <div class="hint" style="margin:2px 0 0">${escapeHtml(v.file.filename)} · ${(v.file.size/1024/1024).toFixed(2)}MB · ${(v.loaders||[]).join('/')} · ${(v.gameVersions||[]).slice(0,3).join(', ')}</div>
+        </div>
+        <button class="btn sm green" data-install="${v.versionId}" data-ptype="${escapeHtml(projectType)}" data-vnum="${escapeHtml(v.versionNumber)}" data-loaders="${escapeHtml((v.loaders||[]).join(','))}">⬇ 安装</button>
+      </div>`).join('');
+    box.querySelectorAll('[data-install]').forEach(b => b.onclick = () =>
+      modInstall(b.dataset.install, b.dataset.ptype, b.dataset.vnum, b.dataset.loaders));
+  } catch (e) {
+    box.innerHTML = `<div class="hint" style="color:var(--red)">版本加载失败: ${escapeHtml(e.message)}</div>`;
+  }
+}
+
+async function modInstall(versionId, projectType, versionNumber, loadersStr) {
+  const inst = currentInstance();
+  if (!inst) return toast('请先选择目标实例', 'warn');
+  const file = modVerFiles[versionId];
+  if (!file) return toast('文件信息缺失，请重新展开版本列表', 'err');
+  const loaders = loadersStr ? String(loadersStr).split(',').filter(Boolean) : [];
+  const r = await post('/mods/install', { instanceId: inst.id, projectType, loaders, file, versionName: versionNumber });
+  if (!r.ok) return toast(r.error || '安装失败', 'err');
+  toast(`开始下载 ${file.filename}`, 'ok');
+  const wrap = $('mod-results');
+  let tip = $('mod-install-tip');
+  if (!tip) { tip = document.createElement('div'); tip.className = 'hint'; tip.id = 'mod-install-tip'; wrap.prepend(tip); }
+  tip.innerHTML = `正在安装到 <b>${escapeHtml(inst.id)}</b>：<span id="mod-install-text">准备中…</span><div class="progress"><div id="mod-install-bar"></div></div>`;
+  pollProgress(r.taskId, $('mod-install-text'), $('mod-install-bar'), () => {
+    toast('安装完成 ✅ 重启服务器后生效', 'ok');
+    renderInstalled();
+    if (tip) tip.innerHTML = `✅ <b>${escapeHtml(file.filename)}</b> 已安装到 <b>${escapeHtml(inst.id)}</b>，重启服务器后生效`;
+  });
+}
+
+async function renderInstalled() {
+  const inst = currentInstance();
+  const box = $('mod-installed');
+  if (!inst) { box.className = 'hint'; box.textContent = '选择实例后显示'; return; }
+  try {
+    const r = await api('/mods/installed?instanceId=' + encodeURIComponent(inst.id));
+    if (!r.files.length) { box.className = 'hint'; box.textContent = `实例 ${inst.id} 还没有安装任何模组/插件`; return; }
+    box.className = '';
+    box.innerHTML = r.files.map(f => `
+      <div class="kv">
+        <span class="k">${f.subdir}/ <b style="color:var(--text)">${escapeHtml(f.name)}</b>
+          ${f.disabled ? '<span class="badge red" style="font-size:10px">已禁用</span>' : ''}</span>
+        <span class="v row" style="gap:6px">
+          <span class="hint" style="margin:0">${(f.size/1024/1024).toFixed(2)}MB</span>
+          ${f.isDir ? '' : `<button class="btn sm" onclick="modToggle('${escapeHtml(f.subdir)}','${escapeHtml(f.name)}',${f.disabled})">${f.disabled ? '启用' : '禁用'}</button>`}
+          <button class="btn sm red" onclick="modRemove('${escapeHtml(f.subdir)}','${escapeHtml(f.name)}')">删除</button>
+        </span>
+      </div>`).join('');
+  } catch (e) {
+    box.className = 'hint';
+    box.innerHTML = `<span style="color:var(--red)">读取失败: ${escapeHtml(e.message)}</span>`;
+  }
+}
+
+async function modRemove(subdir, name) {
+  const inst = currentInstance();
+  if (!inst) return;
+  if (!confirm(`确定删除 ${subdir}/${name} 吗？`)) return;
+  const r = await post('/mods/remove', { instanceId: inst.id, subdir, name });
+  if (r.ok) { toast('已删除', 'ok'); renderInstalled(); } else toast(r.error || '删除失败', 'err');
+}
+async function modToggle(subdir, name, isDisabled) {
+  const inst = currentInstance();
+  if (!inst) return;
+  const r = await post('/mods/toggle', { instanceId: inst.id, subdir, name, enable: !!isDisabled });
+  if (r.ok) { toast(r.changed ? '已切换状态（重启服务器生效）' : '无需变更', 'ok'); renderInstalled(); } else toast(r.error || '操作失败', 'err');
+}
+
+// ================= Java 页 =================
+async function loadJavaPage() {
+  const r = await api('/java');
+  const box = $('java-list');
+  if (!r.system.length && !r.downloaded) {
+    box.className = 'hint';
+    box.innerHTML = '<span class="badge red">未检测到 Java</span> 请在下方一键安装（MC 1.20.5+ 需要 Java 21）';
+  } else {
+    box.className = '';
+    box.innerHTML = '<div class="grid g3">' + r.system.map(j => `
+      <div class="card" style="padding:12px"><b>Java ${j.version}</b>
+      <div class="hint" style="margin-top:6px;word-break:break-all">${escapeHtml(j.path)}</div></div>`).join('') +
+      (r.downloaded ? `<div class="card" style="padding:12px;border-color:var(--green)"><b>☕ EasySUS 内置</b>
+      <div class="hint" style="margin-top:6px;word-break:break-all">${escapeHtml(r.downloaded)}</div></div>` : '') + '</div>';
+  }
+}
+$('java-download').onclick = async () => {
+  const r = await post('/java/download', { major: Number($('java-major').value) });
+  if (!r.ok) return toast(r.error || '启动失败', 'err');
+  $('java-progress').style.display = 'block';
+  pollProgress(r.taskId, $('java-progress-text'), $('java-progress-bar'), () => { toast('Java 安装完成', 'ok'); loadJavaPage(); });
+};
+
+// ================= 贡献页 =================
+$('contrib-claim').onclick = async () => {
+  const token = $('contrib-token').value.trim();
+  if (!token) return toast('请输入捐赠令牌', 'warn');
+  const r = await post('/contribution/claim', { token });
+  if (r.ok) {
+    $('contrib-result').innerHTML = '<span class="badge purple">⭐ ' + escapeHtml(r.message || '认领成功') + '</span>';
+    toast('欢迎贡献者！🎉', 'ok');
+  } else {
+    $('contrib-result').innerHTML = '<span class="badge red">' + escapeHtml(r.message || r.error || '认领失败') + '</span>';
+  }
+};
+
+// ================= 代码块复制 =================
+function setupCopyButtons() {
+  document.querySelectorAll('pre[data-copy]').forEach(pre => {
+    if (pre.dataset.copyReady) return;
+    pre.dataset.copyReady = '1';
+    const btn = document.createElement('button');
+    btn.className = 'btn sm';
+    btn.textContent = '📋 复制';
+    btn.style.cssText = 'position:absolute;top:8px;right:8px;font-size:11px;padding:3px 10px';
+    pre.style.position = 'relative';
+    btn.onclick = async () => {
+      try {
+        await navigator.clipboard.writeText(pre.innerText.replace(/^📋 复制\s*/, '').trim());
+        btn.textContent = '✅ 已复制';
+        setTimeout(() => btn.textContent = '📋 复制', 1800);
+      } catch (_) { toast('复制失败，请手动选中复制', 'err'); }
+    };
+    pre.appendChild(btn);
+  });
+}
+
+// ================= 启动 =================
+(async () => {
+  const t = await api('/theme');
+  if (t.ok) { curTheme = t.theme; applyTheme(curTheme); }
+  setupCopyButtons();
+  pollStatus();
+  setInterval(pollStatus, 2000);
+})();
+</script>
+</body>
+</html>
