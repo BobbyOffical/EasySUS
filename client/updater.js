@@ -167,7 +167,8 @@ function isProtected(rel) {
 function apply() {
   if (!fs.existsSync(path.join(STAGING, 'VERSION'))) return { ok: false, error: '没有已下载好的更新，请先点下载' };
   const script = path.join(ROOT, 'tools', 'apply-update.js');
-  const child = spawn(process.execPath, [script, ROOT, STAGING], {
+  const port = getConfig().webPort || 19388;
+  const child = spawn(process.execPath, [script, ROOT, STAGING, String(port)], {
     detached: true, stdio: 'ignore', windowsHide: true,
   });
   child.unref();

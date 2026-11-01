@@ -18,6 +18,7 @@ const { spawn, execSync } = require('child_process');
 
 const ROOT = path.resolve(process.argv[2] || '.');
 const STAGING = path.resolve(process.argv[3] || path.join(ROOT, 'client', 'data', 'update-staging'));
+const PORT = Number(process.argv[4] && /^\d+$/.test(process.argv[4]) ? process.argv[4] : 19388);
 const NO_RESTART = process.argv.includes('--no-restart');
 const LOG = path.join(ROOT, 'client', 'data', 'update-apply.log');
 const BACKUP = path.join(ROOT, 'client', 'data', 'update-backup');
@@ -50,7 +51,7 @@ function portBusy(port) {
 function waitExit(maxMs = 20000) {
   const t0 = Date.now();
   while (Date.now() - t0 < maxMs) {
-    if (!portBusy(19388)) return true;
+    if (!portBusy(PORT)) return true;
     const t1 = Date.now(); while (Date.now() - t1 < 800) {}   // sleep 0.8s
   }
   return false;
